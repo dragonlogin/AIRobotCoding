@@ -2,6 +2,7 @@
 
 #include "core/PluginInterface.h"
 #include <QObject>
+#include <QWidget>
 
 class OsgViewerWidget;
 class OccToOsgConverter;
@@ -23,7 +24,7 @@ public:
     void shutdown() override;
     QList<QAction*> toolBarActions() override;
 
-    OsgViewerWidget* viewerWidget() const { return m_viewer; }
+    QWidget* viewerWidget() const;
 
 private:
     void onModelLoaded(const QVariantMap& data);

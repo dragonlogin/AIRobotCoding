@@ -13,7 +13,7 @@
 // OCC 几何分析
 #include <BRep_Tool.hxx>
 #include <BRepGProp.hxx>
-#include <GProp_GProperties.hxx>
+#include <GProp_GProps.hxx>
 #include <BRepAdaptor_Surface.hxx>
 #include <BRepLProp_SLProps.hxx>
 #include <GeomAbs_SurfaceType.hxx>
@@ -118,7 +118,7 @@ QVector<SurfaceInfo> StepReader::analyzeSurfaces() const
         }
 
         // === 面积 ===
-        GProp_GProperties props;
+        GProp_GProps props;
         BRepGProp::SurfaceProperties(face, props);
         info.area = props.Mass();  // 面积值
 

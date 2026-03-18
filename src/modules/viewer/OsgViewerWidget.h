@@ -2,6 +2,7 @@
 
 #include <QOpenGLWidget>
 #include <QTimer>
+#include <QMap>
 
 #include <osgViewer/Viewer>
 #include <osgViewer/GraphicsWindow>

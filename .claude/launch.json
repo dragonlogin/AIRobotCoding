@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cmake-configure",
+      "runtimeExecutable": "wsl",
+      "runtimeArgs": ["bash", "-c", "cd /mnt/e/Code/AIRobotCoding && cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug"],
+      "port": 0
+    },
+    {
+      "name": "cmake-build",
+      "runtimeExecutable": "wsl",
+      "runtimeArgs": ["bash", "-c", "cd /mnt/e/Code/AIRobotCoding && cmake --build build --parallel"],
+      "port": 0
+    },
+    {
+      "name": "run-airobotgrinding",
+      "runtimeExecutable": "wsl",
+      "runtimeArgs": ["bash", "-c", "cd /mnt/e/Code/AIRobotCoding && ./build/src/app/AIRobotGrinding"],
+      "port": 0
+    }
+  ]
+}

@@ -12,6 +12,8 @@ ViewerModule::ViewerModule(QObject* parent)
 {
 }
 
+QWidget* ViewerModule::viewerWidget() const { return m_viewer; }
+
 bool ViewerModule::initialize()
 {
     m_viewer = new OsgViewerWidget();

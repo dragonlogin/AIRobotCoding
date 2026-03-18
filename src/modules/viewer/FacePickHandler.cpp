@@ -49,7 +49,7 @@ void FacePickHandler::pick(float x, float y, bool multiSelect)
     }
 
     // 获取最近的交点
-    auto& intersection = intersector->getFirstIntersection();
+    const auto& intersection = intersector->getFirstIntersection();
     osg::NodePath& nodePath = const_cast<osg::NodePath&>(intersection.nodePath);
 
     // 查找带有 FaceUserData 的 Geode 节点

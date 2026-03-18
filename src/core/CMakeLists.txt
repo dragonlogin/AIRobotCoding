@@ -6,4 +6,4 @@ add_library(core STATIC
     DataModel.cpp
 )
 
-target_link_libraries(core Qt5::Core)
+target_link_libraries(core PUBLIC Qt5::Core Qt5::Gui Qt5::Widgets)

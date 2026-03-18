@@ -140,7 +140,6 @@ void PathPlanModule::generatePath()
     }
 
     task.path = path;
-    data->setCurrentTaskIndex(data->tasks().indexOf(task));
 
     auto stats = m_generator.statistics();
     bus->publish("log.message", {
