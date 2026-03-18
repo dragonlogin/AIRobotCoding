@@ -14,6 +14,7 @@ add_executable(AIRobotGrinding ${APP_SOURCES} ${APP_RESOURCES})
 target_link_libraries(AIRobotGrinding
     core
     ui
+    mod_kinematics
     mod_cad
     mod_viewer
     mod_robot

@@ -9,6 +9,9 @@
 // 前向声明 OCC 类型
 class TopoDS_Shape;
 
+// 运动学数据类型
+#include "modules/kinematics/IKinematics.h"
+
 /**
  * @brief 曲面信息
  */
@@ -42,6 +45,7 @@ struct GrindingTask
     QString name;
     QVector<int> selectedFaces;
     QVector<PathPoint> path;
+    QVector<JointWaypoint> jointTrajectory;  // IK 求解后的关节轨迹
 
     // 打磨参数
     QString toolType = "砂轮-80#";
@@ -49,6 +53,9 @@ struct GrindingTask
     double feedRate = 500;       // mm/min
     double pressure = 10.0;      // N
     double stepOver = 2.0;       // mm
+
+    // 机器人配置
+    QString robotType = "ur5";
 };
 
 /**

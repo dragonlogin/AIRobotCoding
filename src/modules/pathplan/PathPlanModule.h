@@ -4,8 +4,11 @@
 #include "GrindingPathGenerator.h"
 #include "PathOptimizer.h"
 #include "PathSimulator.h"
+#include "modules/kinematics/IKinematics.h"
+#include "modules/kinematics/KinematicsFactory.h"
 
 #include <QObject>
+#include <memory>
 
 /**
  * @brief 路径规划模块 - 打磨路径生成、优化与仿真
@@ -40,7 +43,10 @@ private:
     void startSimulation();
     void stopSimulation();
 
+    void computeIK();
+
     GrindingPathGenerator m_generator;
     PathOptimizer m_optimizer;
     PathSimulator* m_simulator = nullptr;
+    std::unique_ptr<IKinematics> m_kinematics;
 };

@@ -34,6 +34,7 @@ endif()
 # 子模块
 # ============================================================================
 add_subdirectory(src/core)
+add_subdirectory(src/modules/kinematics)
 add_subdirectory(src/modules/cad)
 add_subdirectory(src/modules/viewer)
 add_subdirectory(src/modules/robot)

@@ -9,4 +9,4 @@ add_library(mod_pathplan STATIC
     PathSimulator.cpp
 )
 
-target_link_libraries(mod_pathplan core Qt5::Core ${OpenCASCADE_LIBRARIES})
+target_link_libraries(mod_pathplan core mod_kinematics Qt5::Core ${OpenCASCADE_LIBRARIES})

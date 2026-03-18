@@ -1,6 +1,7 @@
 #include "PathPlanModule.h"
 #include "core/EventBus.h"
 #include "core/DataModel.h"
+#include "modules/kinematics/KdlKinematics.h"
 
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
@@ -155,6 +156,66 @@ void PathPlanModule::generatePath()
     bus->publish("pathplan.path.generated", {
         {"taskName", task.name},
         {"pointCount", stats.totalPoints}
+    });
+
+    emit data->tasksChanged();
+
+    // 路径生成完成后自动计算 IK
+    computeIK();
+}
+
+void PathPlanModule::computeIK()
+{
+    auto* data = DataModel::instance();
+    auto* bus  = EventBus::instance();
+    if (data->tasks().isEmpty()) return;
+
+    GrindingTask& task = data->currentTask();
+    if (task.path.isEmpty()) return;
+
+    // 懒加载运动学解算器
+    if (!m_kinematics || m_kinematics->robotName() != task.robotType) {
+        m_kinematics = KinematicsFactory::create(task.robotType);
+        if (!m_kinematics) {
+            bus->publish("log.message", {
+                {"level", "WARN"},
+                {"message", QString("IK: 不支持的机器人型号 [%1]").arg(task.robotType)}
+            });
+            return;
+        }
+    }
+
+    bus->publish("log.message", {
+        {"level", "INFO"},
+        {"message", QString("开始计算逆运动学，共 %1 个路径点，后端: %2")
+            .arg(task.path.size())
+            .arg(KinematicsFactory::backendName())}
+    });
+
+    // 构建笛卡尔位姿序列（位置 + 工具姿态）
+    QVector<CartesianPose> poses;
+    poses.reserve(task.path.size());
+    for (int i = 0; i < task.path.size(); ++i) {
+        QVector3D dir = (i + 1 < task.path.size())
+            ? (task.path[i+1].position - task.path[i].position)
+            : (i > 0 ? (task.path[i].position - task.path[i-1].position) : QVector3D(1,0,0));
+        poses.append(KdlKinematics::poseFromNormal(
+            task.path[i].position, task.path[i].normal, dir));
+    }
+
+    // 以当前机器人关节角为起点（或零位）
+    std::array<double, 6> startJoints;
+    const auto& rs = data->robotState();
+    for (int i = 0; i < 6; ++i) startJoints[i] = rs.joints[i];
+
+    task.jointTrajectory = m_kinematics->computeTrajectory(poses, startJoints, task.feedRate);
+
+    bus->publish("log.message", {
+        {"level", "INFO"},
+        {"message", QString("IK 完成: %1 个关节路径点，总时长 %2 s")
+            .arg(task.jointTrajectory.size())
+            .arg(task.jointTrajectory.isEmpty() ? 0.0
+                 : task.jointTrajectory.last().timeFromStart, 0, 'f', 1)}
     });
 
     emit data->tasksChanged();
