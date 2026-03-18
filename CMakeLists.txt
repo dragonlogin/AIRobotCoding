@@ -10,10 +10,9 @@ set(CMAKE_AUTOUIC ON)
 # ============================================================================
 # 依赖查找
 # ============================================================================
-#set(OpenCASCADE_DIR "/opt/opencascade/lib/cmake/opencascade")
+# ── macOS ──────────────────────────────────────────────────────────────────
 if(APPLE)
     set(OpenCASCADE_DIR "$ENV{OpenCASCADE_DIR}")
-    # Homebrew Qt5 路径（与 Qt6 共存时需要显式指定）
     if(NOT DEFINED Qt5_DIR)
         foreach(_qt5_prefix
                 "/opt/homebrew/opt/qt@5/lib/cmake/Qt5"
@@ -25,13 +24,28 @@ if(APPLE)
         endforeach()
     endif()
 endif()
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets OpenGL)
 
 if(APPLE)
-    # Qt6 installs headers into /usr/local/include/QtGui which shadows Qt5 framework
-    # headers when included as <QtGui/header.h>. Force Qt5 include path first.
     get_filename_component(_qt5_prefix "${Qt5_DIR}/../../.." ABSOLUTE)
     include_directories(BEFORE "${_qt5_prefix}/include")
+endif()
+
+# ── Windows ─────────────────────────────────────────────────────────────────
+# 推荐用 vcpkg 统一安装依赖：
+#   vcpkg install qt5-base qt5-opengl opencascade open-scene-graph orocos-kdl
+# 然后 cmake 传入 -DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake
+#
+# 若手动安装，按实际路径设置下列变量（可在 cmake-gui 里设置）：
+#   Qt5_DIR        = C:/Qt/5.15.2/msvc2019_64/lib/cmake/Qt5
+#   OpenCASCADE_DIR= C:/OpenCASCADE-7.7.0/cmake
+#   OSG_DIR        = C:/OSG/lib/cmake/OpenSceneGraph
+if(WIN32)
+    # MSVC 需要定义 _USE_MATH_DEFINES 才能使用 M_PI
+    add_definitions(-D_USE_MATH_DEFINES)
+    # 关闭 MSVC 的 min/max 宏，避免与 std::min/max 冲突
+    add_definitions(-DNOMINMAX)
+    # 让 Windows.h 只包含常用部分，加快编译
+    add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
 
 find_package(OpenSceneGraph REQUIRED COMPONENTS osgViewer osgGA osgDB osgUtil osgText)

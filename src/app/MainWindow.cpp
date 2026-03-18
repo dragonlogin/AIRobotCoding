@@ -16,6 +16,9 @@
 #include <QVBoxLayout>
 #include <QDir>
 #include <QStandardPaths>
+#ifdef _WIN32
+#  define _USE_MATH_DEFINES  // MSVC 下 <cmath> 不默认导出 M_PI
+#endif
 #include <cmath>
 
 MainWindow::MainWindow(QWidget* parent)
@@ -204,8 +207,7 @@ void MainWindow::setupLibraryMenus(QMenu* libraryMenu)
     robotLibMenu->addSeparator();
     QAction* kukaStepAct = robotLibMenu->addAction("KUKA KR600 R2830  [三维模型]  导入 STEP...");
     connect(kukaStepAct, &QAction::triggered, this, [this]() {
-        QString baseDir = QDir(QCoreApplication::applicationDirPath())
-                              .filePath("../resources/robots");
+        QString baseDir  = robotsResourceDir();
         QString filePath = QDir(baseDir).filePath("KR600_R2830.stp");
         if (!QFile::exists(filePath))
             filePath = QFileDialog::getOpenFileName(this, "加载机器人 STEP 模型",
@@ -263,11 +265,30 @@ void MainWindow::loadRobotFromLibrary(const RobotLibEntry& entry)
     });
 }
 
+// 跨平台资源目录定位：
+//   macOS/Linux: 可执行文件在 build/bin/，resources 在源码根目录
+//   Windows MSVC: 可执行文件在 build/Debug 或 build/Release 下
+static QString findResourceDir(const QString& subDir)
+{
+    const QString exe = QCoreApplication::applicationDirPath();
+    // 依次尝试常见的相对位置
+    for (const QString& rel : { "../resources/" + subDir,
+                                 "../../resources/" + subDir,
+                                 "../../../resources/" + subDir,
+                                 "resources/" + subDir }) {
+        QString candidate = QDir(exe).filePath(rel);
+        if (QDir(candidate).exists())
+            return QDir(candidate).absolutePath();
+    }
+    return QDir(exe).filePath("../resources/" + subDir); // 兜底
+}
+
+static QString robotsResourceDir()    { return findResourceDir("robots");     }
+static QString workpiecesResourceDir(){ return findResourceDir("workpieces"); }
+
 void MainWindow::loadWorkpieceFromLibrary(const WorkpieceLibEntry& entry)
 {
-    // 优先在 resources/workpieces/ 目录查找
-    QString baseDir = QDir(QCoreApplication::applicationDirPath())
-                          .filePath("../resources/workpieces");
+    QString baseDir  = workpiecesResourceDir();
     QString filePath = QDir(baseDir).filePath(entry.fileName);
 
     if (!QFile::exists(filePath)) {

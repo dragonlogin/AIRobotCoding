@@ -186,12 +186,63 @@ sequenceDiagram
 
 ## 构建方法
 
+### macOS
+
 ```bash
-# macOS (Homebrew)
 brew install qt@5 opencascade open-scene-graph
 
 mkdir build && cd build
 cmake .. -DQt5_DIR=/opt/homebrew/opt/qt@5/lib/cmake/Qt5
+make -j$(nproc)
+```
+
+### Windows（推荐 vcpkg + MSVC）
+
+**第一步：安装工具链**
+
+- [Visual Studio 2022](https://visualstudio.microsoft.com/)（勾选"使用 C++ 的桌面开发"）
+- [CMake ≥ 3.16](https://cmake.org/download/)
+- [vcpkg](https://github.com/microsoft/vcpkg)（C++ 包管理器）
+
+```powershell
+# 安装 vcpkg
+git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+C:\vcpkg\bootstrap-vcpkg.bat
+
+# 安装所有依赖（x64）
+C:\vcpkg\vcpkg install qt5-base:x64-windows
+C:\vcpkg\vcpkg install qt5-opengl:x64-windows
+C:\vcpkg\vcpkg install opencascade:x64-windows
+C:\vcpkg\vcpkg install open-scene-graph:x64-windows
+C:\vcpkg\vcpkg install orocos-kdl:x64-windows
+```
+
+**第二步：构建**
+
+```powershell
+mkdir build && cd build
+cmake .. `
+  -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build . --config Release -j
+```
+
+> **ROS 说明**：ROS1 官方不支持 Windows。
+> Windows 下项目自动进入**模拟模式**（`HAS_ROS` 未定义），可正常使用除实机通信外的所有功能。
+> 需要实机控制时，推荐使用 **WSL2 + Ubuntu 20.04 + ROS Noetic**，通过局域网与 Windows 程序通信。
+
+### Linux（Ubuntu 20.04）
+
+```bash
+sudo apt install qt5-default libqt5opengl5-dev
+sudo apt install libocct-modeling-algorithms-dev libocct-data-exchange-dev
+sudo apt install libopenscenegraph-dev liborocos-kdl-dev
+
+# 可选：ROS Noetic
+sudo apt install ros-noetic-roscpp ros-noetic-sensor-msgs ros-noetic-geometry-msgs
+
+mkdir build && cd build
+cmake ..
 make -j$(nproc)
 ```
 
