@@ -6,6 +6,7 @@
 #include "core/DataModel.h"
 
 #include <osg/Group>
+#include <TopoDS_Shape.hxx>
 
 ViewerModule::ViewerModule(QObject* parent)
     : QObject(parent)
@@ -47,12 +48,35 @@ QList<QAction*> ViewerModule::toolBarActions()
 
 void ViewerModule::onModelLoaded(const QVariantMap& data)
 {
-    Q_UNUSED(data)
+    quintptr ptr = data.value("shape_ptr").value<quintptr>();
+    if (!ptr) {
+        EventBus::instance()->publish("log.message", {
+            {"level", "ERROR"}, {"message", "ViewerModule: 未收到 shape 指针，无法显示模型"}
+        });
+        return;
+    }
 
-    // 从 EventBus 传递的数据中无法直接获取 TopoDS_Shape
-    // 需要从 CadModule 获取，这里通过 PluginManager 查找
-    // 为保持解耦，使用事件总线请求数据
-    EventBus::instance()->publish("cad.shape.request", {});
+    const TopoDS_Shape* shape = reinterpret_cast<const TopoDS_Shape*>(ptr);
+    if (shape->IsNull()) {
+        EventBus::instance()->publish("log.message", {
+            {"level", "ERROR"}, {"message", "ViewerModule: shape 为空"}
+        });
+        return;
+    }
+
+    // OCC shape → OSG 网格
+    osg::ref_ptr<osg::Group> node = m_converter->convertShape(*shape);
+
+    // 替换场景中的旧模型
+    m_viewer->removeSceneNode("CADModel");
+    m_viewer->addSceneNode(node.get(), "CADModel");
+
+    // 视图适配
+    m_viewer->fitAll();
+
+    EventBus::instance()->publish("log.message", {
+        {"level", "INFO"}, {"message", "3D 模型显示完成"}
+    });
 }
 
 void ViewerModule::onPathGenerated(const QVariantMap& data)

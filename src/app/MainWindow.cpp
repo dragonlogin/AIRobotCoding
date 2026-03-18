@@ -14,6 +14,9 @@
 #include <QMessageBox>
 #include <QSplitter>
 #include <QVBoxLayout>
+#include <QDir>
+#include <QStandardPaths>
+#include <cmath>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -22,6 +25,7 @@ MainWindow::MainWindow(QWidget* parent)
     resize(1600, 900);
     setMinimumSize(1200, 700);
 
+    menuBar()->setNativeMenuBar(false);  // macOS 下显示在窗口内而非系统菜单栏
     setupMenuBar();
     setupToolBars();
     setupCentralWidget();
@@ -158,10 +162,131 @@ void MainWindow::setupMenuBar()
     m_windowMenu = menuBar->addMenu("窗口(&W)");
     // dock widget 的显示/隐藏 action 在 setupDockWidgets 中添加
 
+    // -- 库菜单 --
+    m_libraryMenu = menuBar->addMenu("库(&L)");
+    setupLibraryMenus(m_libraryMenu);
+
     // -- 帮助菜单 --
     m_helpMenu = menuBar->addMenu("帮助(&H)");
     m_helpMenu->addAction("使用手册");
     m_helpMenu->addAction("关于(&A)...");
+}
+
+// ============================================================================
+// 机器人库 & STEP 工件库
+// ============================================================================
+void MainWindow::setupLibraryMenus(QMenu* libraryMenu)
+{
+    // ── 机器人库 ──
+    static const RobotLibEntry robotLib[] = {
+        { "ur5",     "UR5",          "Universal Robots", 6, 850,  5,  { 0, -90, 90, -90,  0, 0 } },
+        { "ur10",    "UR10",         "Universal Robots", 6, 1300, 10, { 0, -90, 90, -90,  0, 0 } },
+        { "kr6_r900","KR6 R900",     "KUKA",             6, 900,  6,  { 0,  45, 90,   0, 90, 0 } },
+        { "irb1200", "IRB 1200",     "ABB",              6, 700,  5,  { 0,  30, 60,   0, 60, 0 } },
+        { "m10ia",   "M10iA",        "Fanuc",            6, 1422, 10, { 0, -60, 80,   0, 70, 0 } },
+        { "cr7ia",   "CR-7iA (协作)","Fanuc",            6, 717,  7,  { 0, -45, 90,   0, 45, 0 } },
+    };
+
+    QMenu* robotLibMenu = libraryMenu->addMenu("机器人库");
+    for (const auto& entry : robotLib) {
+        QString label = QString("%1  [%2]  到达 %3mm / %4kg")
+                            .arg(entry.name, entry.manufacturer)
+                            .arg(entry.reach).arg(entry.payload);
+        QAction* act = robotLibMenu->addAction(label);
+        connect(act, &QAction::triggered, this, [this, entry]() {
+            loadRobotFromLibrary(entry);
+        });
+    }
+
+    libraryMenu->addSeparator();
+
+    // ── 机器人 STEP 模型库（外观/仿真用）──
+    robotLibMenu->addSeparator();
+    QAction* kukaStepAct = robotLibMenu->addAction("KUKA KR600 R2830  [三维模型]  导入 STEP...");
+    connect(kukaStepAct, &QAction::triggered, this, [this]() {
+        QString baseDir = QDir(QCoreApplication::applicationDirPath())
+                              .filePath("../resources/robots");
+        QString filePath = QDir(baseDir).filePath("KR600_R2830.stp");
+        if (!QFile::exists(filePath))
+            filePath = QFileDialog::getOpenFileName(this, "加载机器人 STEP 模型",
+                            baseDir, "STEP 文件 (*.step *.stp)");
+        if (!filePath.isEmpty())
+            EventBus::instance()->publish("cad.import.request", {{"path", filePath}});
+    });
+
+    libraryMenu->addSeparator();
+
+    // ── STEP 工件库 ──
+    static const WorkpieceLibEntry workpieceLib[] = {
+        { "多特征机械零件",  "含平面/孔/槽，AP214 标准测试件",  "flat_plate.stp"      },
+        { "圆柱装配件",      "多零件装配，含圆柱曲面",          "cylinder.stp"        },
+        { "B样条笼形曲面",   "样条曲面结构，适合路径规划验证",  "sphere_half.stp"     },
+        { "通风叶轮",        "复杂旋转曲面，类涡轮叶片结构",    "turbine_blade.stp"   },
+        { "多面识别零件",    "多种曲面类型，适合曲面识别测试",  "freeform_surface.stp"},
+        { "复杂装配体",      "大型自由曲面装配，高面数测试",    "complex_surface.stp" },
+        { "标准装配测试件",  "AP214 装配标准测试件",            "assembly_test.stp"   },
+    };
+
+    QMenu* workpieceLibMenu = libraryMenu->addMenu("STEP 工件库");
+    for (const auto& entry : workpieceLib) {
+        QString label = QString("%1  —  %2").arg(entry.name, entry.description);
+        QAction* act = workpieceLibMenu->addAction(label);
+        connect(act, &QAction::triggered, this, [this, entry]() {
+            loadWorkpieceFromLibrary(entry);
+        });
+    }
+}
+
+void MainWindow::loadRobotFromLibrary(const RobotLibEntry& entry)
+{
+    RobotState state;
+    state.connected  = true;
+    state.moving     = false;
+    state.statusText = QString("[库] %1 (%2) 已加载").arg(entry.name, entry.manufacturer);
+    for (int i = 0; i < 6; ++i)
+        state.joints[i] = entry.joints[i];
+    // 简单正运动学近似：末端 Z = reach * sin(joint[1] deg)
+    double j1r = entry.joints[1] * M_PI / 180.0;
+    state.tcpPosition = QVector3D(
+        static_cast<float>(entry.reach * 0.6),
+        0.0f,
+        static_cast<float>(entry.reach * std::abs(std::sin(j1r))));
+
+    DataModel::instance()->updateRobotState(state);
+
+    m_rosStatusLabel->setText(QString("机器人: %1").arg(entry.name));
+    EventBus::instance()->publish("log.message", {
+        {"level",   "INFO"},
+        {"message", QString("已从库加载机器人: %1 | 厂商: %2 | 自由度: %3 | 到达范围: %4 mm")
+             .arg(entry.name, entry.manufacturer)
+             .arg(entry.dof).arg(entry.reach)}
+    });
+}
+
+void MainWindow::loadWorkpieceFromLibrary(const WorkpieceLibEntry& entry)
+{
+    // 优先在 resources/workpieces/ 目录查找
+    QString baseDir = QDir(QCoreApplication::applicationDirPath())
+                          .filePath("../resources/workpieces");
+    QString filePath = QDir(baseDir).filePath(entry.fileName);
+
+    if (!QFile::exists(filePath)) {
+        // 让用户手动选择
+        filePath = QFileDialog::getOpenFileName(
+            this,
+            QString("导入工件: %1").arg(entry.name),
+            baseDir,
+            "STEP 文件 (*.step *.stp);;所有文件 (*.*)");
+    }
+
+    if (filePath.isEmpty())
+        return;
+
+    EventBus::instance()->publish("cad.import.request", {{"path", filePath}});
+    EventBus::instance()->publish("log.message", {
+        {"level",   "INFO"},
+        {"message", QString("已从库加载工件: %1 — %2").arg(entry.name, entry.description)}
+    });
 }
 
 // ============================================================================

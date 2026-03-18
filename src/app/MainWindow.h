@@ -8,8 +8,25 @@
 #include <QTabWidget>
 #include <QLabel>
 #include <QMap>
+#include <QString>
 
 class IModule;
+
+struct RobotLibEntry {
+    QString id;
+    QString name;
+    QString manufacturer;
+    int     dof;
+    double  reach;      // mm
+    double  payload;    // kg
+    double  joints[6];  // 测试初始关节角 (deg)
+};
+
+struct WorkpieceLibEntry {
+    QString name;
+    QString description;
+    QString fileName;   // 相对于 resources/workpieces/ 的文件名
+};
 
 /**
  * @brief 主窗口 - 负责布局管理和模块集成
@@ -36,6 +53,9 @@ private:
     void setupDockWidgets();
     void setupConnections();
     void loadStyleSheet();
+    void setupLibraryMenus(QMenu* libraryMenu);
+    void loadRobotFromLibrary(const RobotLibEntry& entry);
+    void loadWorkpieceFromLibrary(const WorkpieceLibEntry& entry);
 
     // -- 菜单 --
     QMenu* m_fileMenu = nullptr;
@@ -46,6 +66,7 @@ private:
     QMenu* m_pathMenu = nullptr;
     QMenu* m_windowMenu = nullptr;
     QMenu* m_helpMenu = nullptr;
+    QMenu* m_libraryMenu = nullptr;
 
     // -- 工具栏 --
     QToolBar* m_fileToolBar = nullptr;

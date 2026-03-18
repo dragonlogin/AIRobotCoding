@@ -10,8 +10,30 @@ set(CMAKE_AUTOUIC ON)
 # ============================================================================
 # 依赖查找
 # ============================================================================
-set(OpenCASCADE_DIR "/opt/opencascade/lib/cmake/opencascade")
+#set(OpenCASCADE_DIR "/opt/opencascade/lib/cmake/opencascade")
+if(APPLE)
+    set(OpenCASCADE_DIR "$ENV{OpenCASCADE_DIR}")
+    # Homebrew Qt5 路径（与 Qt6 共存时需要显式指定）
+    if(NOT DEFINED Qt5_DIR)
+        foreach(_qt5_prefix
+                "/opt/homebrew/opt/qt@5/lib/cmake/Qt5"
+                "/usr/local/opt/qt@5/lib/cmake/Qt5")
+            if(EXISTS "${_qt5_prefix}")
+                set(Qt5_DIR "${_qt5_prefix}")
+                break()
+            endif()
+        endforeach()
+    endif()
+endif()
 find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets OpenGL)
+
+if(APPLE)
+    # Qt6 installs headers into /usr/local/include/QtGui which shadows Qt5 framework
+    # headers when included as <QtGui/header.h>. Force Qt5 include path first.
+    get_filename_component(_qt5_prefix "${Qt5_DIR}/../../.." ABSOLUTE)
+    include_directories(BEFORE "${_qt5_prefix}/include")
+endif()
+
 find_package(OpenSceneGraph REQUIRED COMPONENTS osgViewer osgGA osgDB osgUtil osgText)
 find_package(OpenCASCADE REQUIRED)
 find_package(catkin QUIET COMPONENTS roscpp std_msgs geometry_msgs sensor_msgs)

@@ -47,11 +47,19 @@ OsgViewerWidget::~OsgViewerWidget()
 
 void OsgViewerWidget::initializeGL()
 {
-    // 创建嵌入式图形窗口
+    // 创建嵌入式图形窗口，用物理像素（Retina 下是逻辑像素的 2 倍）
+    const double dpr = devicePixelRatio();
     m_graphicsWindow = new osgViewer::GraphicsWindowEmbedded(
-        x(), y(), width(), height());
+        0, 0,
+        static_cast<int>(width()  * dpr),
+        static_cast<int>(height() * dpr));
 
     m_viewer = new osgViewer::Viewer;
+
+    // 关键：嵌入 QOpenGLWidget 时必须单线程，否则 OSG 会另起渲染线程
+    // 与 Qt 上下文冲突，导致 State::apply() invalid operation 且画面空白
+    m_viewer->setThreadingModel(osgViewer::Viewer::SingleThreaded);
+
     m_viewer->setSceneData(m_sceneRoot);
 
     setupCamera();
@@ -62,26 +70,44 @@ void OsgViewerWidget::initializeGL()
 void OsgViewerWidget::paintGL()
 {
     if (m_viewer.valid()) {
+        makeCurrent();          // 确保 Qt OpenGL 上下文在当前线程激活
         m_viewer->frame();
     }
 }
 
 void OsgViewerWidget::resizeGL(int w, int h)
 {
-    if (m_graphicsWindow.valid()) {
-        m_graphicsWindow->resized(x(), y(), w, h);
-        m_graphicsWindow->getEventQueue()->windowResize(x(), y(), w, h);
+    if (!m_graphicsWindow.valid()) return;
+
+    const double dpr = devicePixelRatio();
+    const int pw = static_cast<int>(w * dpr);
+    const int ph = static_cast<int>(h * dpr);
+
+    m_graphicsWindow->resized(0, 0, pw, ph);
+    m_graphicsWindow->getEventQueue()->windowResize(0, 0, pw, ph);
+
+    if (m_viewer.valid()) {
+        m_viewer->getCamera()->setViewport(0, 0, pw, ph);
+        if (ph > 0) {
+            m_viewer->getCamera()->setProjectionMatrixAsPerspective(
+                45.0, static_cast<double>(pw) / ph, 0.1, 10000.0);
+        }
     }
 }
 
 void OsgViewerWidget::setupCamera()
 {
+    // macOS Retina：用物理像素，否则只渲染左下角一小块
+    const double dpr = devicePixelRatio();
+    const int pw = static_cast<int>(width()  * dpr);
+    const int ph = static_cast<int>(height() * dpr);
+
     osg::Camera* camera = m_viewer->getCamera();
     camera->setGraphicsContext(m_graphicsWindow);
-    camera->setViewport(0, 0, width(), height());
-    camera->setClearColor(osg::Vec4(0.17f, 0.17f, 0.17f, 1.0f)); // 深灰背景
+    camera->setViewport(0, 0, pw, ph);
+    camera->setClearColor(osg::Vec4(0.17f, 0.17f, 0.17f, 1.0f));
     camera->setProjectionMatrixAsPerspective(
-        45.0, static_cast<double>(width()) / height(), 0.1, 10000.0);
+        45.0, static_cast<double>(pw) / ph, 0.1, 10000.0);
 
     m_viewer->setCameraManipulator(new osgGA::TrackballManipulator);
 }

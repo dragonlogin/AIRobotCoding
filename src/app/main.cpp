@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
     // OpenGL 配置
     QSurfaceFormat format;
     format.setVersion(3, 3);
-    format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setProfile(QSurfaceFormat::CompatibilityProfile); // OSG 依赖固定管线，不能用 CoreProfile
     format.setSamples(4);
     format.setDepthBufferSize(24);
     QSurfaceFormat::setDefaultFormat(format);

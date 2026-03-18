@@ -118,10 +118,12 @@ void CadModule::importStepFile(const QString& path)
     data->setModelPath(path);
     data->setSurfaces(surfaces);
 
-    // 5. 通知 Viewer 模块显示模型
+    // 5. 通知 Viewer 模块显示模型（携带 shape 指针，避免再走一次事件往返）
     bus->publish("cad.model.loaded", {
-        {"path", path},
-        {"faceCount", m_faces.size()}
+        {"path",      path},
+        {"faceCount", m_faces.size()},
+        {"shape_ptr", QVariant::fromValue(
+            reinterpret_cast<quintptr>(&m_reader.shape()))}
     });
 
     bus->publish("log.message", {
