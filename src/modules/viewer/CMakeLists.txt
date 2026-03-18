@@ -3,6 +3,7 @@ add_library(mod_viewer STATIC
     ViewerModule.cpp
     OsgViewerWidget.h
     OsgViewerWidget.cpp
+
     OccToOsgConverter.h
     OccToOsgConverter.cpp
     FacePickHandler.h

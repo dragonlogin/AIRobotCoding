@@ -10,6 +10,7 @@ set(CMAKE_AUTOUIC ON)
 # ============================================================================
 # 依赖查找
 # ============================================================================
+set(OpenCASCADE_DIR "/opt/opencascade/lib/cmake/opencascade")
 find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets OpenGL)
 find_package(OpenSceneGraph REQUIRED COMPONENTS osgViewer osgGA osgDB osgUtil osgText)
 find_package(OpenCASCADE REQUIRED)

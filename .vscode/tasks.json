@@ -4,13 +4,7 @@
     {
       "label": "cmake-build-debug",
       "type": "shell",
-      "command": "wsl -d Ubuntu-20.04 -- bash -c 'cd /mnt/e/Code/AIRobotCoding && cmake --build build --parallel'",
-      "options": {
-        "shell": {
-          "executable": "C:\\Windows\\System32\\cmd.exe",
-          "args": ["/d", "/c"]
-        }
-      },
+      "command": "cmake --build build --parallel",
       "group": {
         "kind": "build",
         "isDefault": true
@@ -24,13 +18,7 @@
     {
       "label": "cmake-configure-debug",
       "type": "shell",
-      "command": "wsl -d Ubuntu-20.04 -- bash -c 'cd /mnt/e/Code/AIRobotCoding && cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug'",
-      "options": {
-        "shell": {
-          "executable": "C:\\Windows\\System32\\cmd.exe",
-          "args": ["/d", "/c"]
-        }
-      },
+      "command": "cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug",
       "group": "build",
       "presentation": {
         "reveal": "always",

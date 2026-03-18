@@ -108,8 +108,6 @@ void OsgViewerWidget::setupScene()
 
 void OsgViewerWidget::addCoordinateAxes()
 {
-    // 坐标轴将在 helper group 中绘制
-    // 具体实现使用 osg::Geometry 画 RGB 三轴线段
     osg::ref_ptr<osg::Geode> axisGeode = new osg::Geode;
     axisGeode->setName("CoordinateAxes");
     m_helperGroup->addChild(axisGeode);
@@ -117,7 +115,6 @@ void OsgViewerWidget::addCoordinateAxes()
 
 void OsgViewerWidget::addGridPlane()
 {
-    // 地面网格
     osg::ref_ptr<osg::Geode> gridGeode = new osg::Geode;
     gridGeode->setName("GridPlane");
     m_helperGroup->addChild(gridGeode);

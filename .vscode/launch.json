@@ -2,18 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "GDB: AIRobotGrinding (WSL)",
+      "name": "GDB: AIRobotGrinding",
       "type": "cppdbg",
       "request": "launch",
-      "program": "/mnt/e/Code/AIRobotCoding/build/src/app/AIRobotGrinding",
+      "program": "${workspaceFolder}/build/src/app/AIRobotGrinding",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "/mnt/e/Code/AIRobotCoding",
+      "cwd": "${workspaceFolder}",
       "environment": [
-        { "name": "DISPLAY", "value": ":0" },
-        { "name": "LIBGL_ALWAYS_SOFTWARE", "value": "1" },
-        { "name": "LANG", "value": "zh_CN.UTF-8" },
-        { "name": "LD_LIBRARY_PATH", "value": "/opt/opencascade/lib" }
+        { "name": "DISPLAY", "value": "172.25.64.1:0" },
+        { "name": "LANG", "value": "zh_CN.UTF-8" }
       ],
       "externalConsole": false,
       "MIMode": "gdb",
