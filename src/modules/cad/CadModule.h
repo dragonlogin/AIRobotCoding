@@ -1,7 +1,13 @@
 #pragma once
 
 #include "core/PluginInterface.h"
+#include "StepReader.h"
+#include "SurfaceAnalyzer.h"
+
 #include <QObject>
+#include <QMap>
+#include <TopoDS_Face.hxx>
+#include <TopoDS_Shape.hxx>
 
 /**
  * @brief CAD 模块 - 基于 OpenCASCADE 的 STEP 模型管理
@@ -26,6 +32,19 @@ public:
     void shutdown() override;
     QList<QAction*> menuActions() override;
 
+    /// 获取指定索引的 TopoDS_Face
+    TopoDS_Face face(int faceIndex) const;
+
+    /// 获取当前加载的形状
+    const TopoDS_Shape& currentShape() const { return m_reader.shape(); }
+
+    /// 获取面分析器
+    SurfaceAnalyzer* analyzerForFace(int faceIndex);
+
 private:
     void importStepFile(const QString& path);
+
+    StepReader m_reader;
+    QVector<TopoDS_Face> m_faces;
+    QMap<int, SurfaceAnalyzer*> m_analyzers;
 };

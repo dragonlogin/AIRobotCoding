@@ -4,6 +4,7 @@
 #include <QObject>
 
 class OsgViewerWidget;
+class OccToOsgConverter;
 
 /**
  * @brief 3D 视图模块 - 管理 OSG 渲染器
@@ -25,5 +26,9 @@ public:
     OsgViewerWidget* viewerWidget() const { return m_viewer; }
 
 private:
+    void onModelLoaded(const QVariantMap& data);
+    void onPathGenerated(const QVariantMap& data);
+
     OsgViewerWidget* m_viewer = nullptr;
+    OccToOsgConverter* m_converter = nullptr;
 };

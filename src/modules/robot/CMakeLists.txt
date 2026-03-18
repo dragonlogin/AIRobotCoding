@@ -1,6 +1,8 @@
 add_library(mod_robot STATIC
     RobotModule.h
     RobotModule.cpp
+    RosBridge.h
+    RosBridge.cpp
 )
 
 target_link_libraries(mod_robot core Qt5::Core)

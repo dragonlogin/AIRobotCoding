@@ -1,16 +1,22 @@
 #pragma once
 
 #include "core/PluginInterface.h"
+#include "GrindingPathGenerator.h"
+#include "PathOptimizer.h"
+#include "PathSimulator.h"
+
 #include <QObject>
 
 /**
- * @brief 路径规划模块 - 打磨路径生成与优化
+ * @brief 路径规划模块 - 打磨路径生成、优化与仿真
  *
- * 职责：
- * - 基于曲面几何生成打磨路径
- * - 路径优化（平滑、碰撞检测）
- * - 路径仿真播放
- * - 路径导出
+ * 工作流程：
+ * 1. 从 DataModel 获取选中曲面和打磨参数
+ * 2. 使用 GrindingPathGenerator 生成初始路径
+ * 3. 使用 PathOptimizer 优化路径
+ * 4. 更新 DataModel 中的路径数据
+ * 5. 通知 Viewer 模块可视化路径
+ * 6. 使用 PathSimulator 进行仿真验证
  */
 class PathPlanModule : public QObject, public IModule
 {
@@ -26,8 +32,15 @@ public:
     void shutdown() override;
     QList<QAction*> menuActions() override;
 
+    PathSimulator* simulator() const { return m_simulator; }
+
 private:
     void generatePath();
+    void optimizePath();
     void startSimulation();
     void stopSimulation();
+
+    GrindingPathGenerator m_generator;
+    PathOptimizer m_optimizer;
+    PathSimulator* m_simulator = nullptr;
 };
