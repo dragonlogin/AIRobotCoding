@@ -27,6 +27,11 @@ bool ViewerModule::initialize()
                 onModelLoaded(data);
             } else if (event == "pathplan.path.generated") {
                 onPathGenerated(data);
+            } else if (event == "viewer.background.changed") {
+                m_viewer->setBackgroundColor(
+                    data.value("r").toFloat(),
+                    data.value("g").toFloat(),
+                    data.value("b").toFloat());
             }
         });
 

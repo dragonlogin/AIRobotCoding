@@ -4,6 +4,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QDateTime>
+#include <QEvent>
 
 LogPanel::LogPanel(QWidget* parent)
     : QWidget(parent)
@@ -11,33 +12,41 @@ LogPanel::LogPanel(QWidget* parent)
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setContentsMargins(2, 2, 2, 2);
 
-    // Toolbar
     QHBoxLayout* toolbar = new QHBoxLayout();
-    m_clearBtn = new QPushButton("Clear", this);
+    m_clearBtn = new QPushButton(this);
     m_clearBtn->setFixedWidth(60);
     toolbar->addStretch();
     toolbar->addWidget(m_clearBtn);
     layout->addLayout(toolbar);
 
-    // Log view
     m_logView = new QPlainTextEdit(this);
     m_logView->setReadOnly(true);
     m_logView->setMaximumBlockCount(5000);
     m_logView->setFont(QFont("Consolas", 9));
     layout->addWidget(m_logView);
 
-    connect(m_clearBtn, &QPushButton::clicked,
-            m_logView, &QPlainTextEdit::clear);
+    connect(m_clearBtn, &QPushButton::clicked, m_logView, &QPlainTextEdit::clear);
 
-    // Listen for log events on the global event bus
     connect(EventBus::instance(), &EventBus::eventPublished, this,
         [this](const QString& event, const QVariantMap& data) {
-            if (event == "log.message") {
-                appendLog(
-                    data.value("level", "INFO").toString(),
-                    data.value("message").toString());
-            }
+            if (event == "log.message")
+                appendLog(data.value("level", "INFO").toString(),
+                          data.value("message").toString());
         });
+
+    retranslateUi();
+}
+
+void LogPanel::retranslateUi()
+{
+    m_clearBtn->setText(tr("Clear"));
+}
+
+void LogPanel::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange)
+        retranslateUi();
+    QWidget::changeEvent(event);
 }
 
 void LogPanel::appendLog(const QString& level, const QString& message)

@@ -3,6 +3,7 @@
 
 #include <QVBoxLayout>
 #include <QHeaderView>
+#include <QEvent>
 
 PathDataPanel::PathDataPanel(QWidget* parent)
     : QWidget(parent)
@@ -12,18 +13,30 @@ PathDataPanel::PathDataPanel(QWidget* parent)
 
     m_table = new QTableWidget(this);
     m_table->setColumnCount(8);
-    m_table->setHorizontalHeaderLabels({
-        "No.", "X", "Y", "Z", "Nx", "Ny", "Nz", "Feed Rate"
-    });
     m_table->horizontalHeader()->setStretchLastSection(true);
     m_table->setAlternatingRowColors(true);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     layout->addWidget(m_table);
 
-    // Refresh when the current task changes
     connect(DataModel::instance(), &DataModel::currentTaskChanged,
             this, [this](int) { refreshTable(); });
+
+    retranslateUi();
+}
+
+void PathDataPanel::retranslateUi()
+{
+    m_table->setHorizontalHeaderLabels({
+        tr("No."), "X", "Y", "Z", tr("Nx"), tr("Ny"), tr("Nz"), tr("Feed Rate")
+    });
+}
+
+void PathDataPanel::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange)
+        retranslateUi();
+    QWidget::changeEvent(event);
 }
 
 void PathDataPanel::refreshTable()
@@ -31,7 +44,6 @@ void PathDataPanel::refreshTable()
     m_table->setRowCount(0);
     const auto& task = DataModel::instance()->currentTask();
     const auto& path = task.path;
-
     m_table->setRowCount(path.size());
     for (int i = 0; i < path.size(); ++i) {
         const auto& pt = path[i];

@@ -32,6 +32,9 @@ public:
     void addSceneNode(osg::Node* node, const QString& name);
     void removeSceneNode(const QString& name);
 
+    /// Set the viewport background clear color
+    void setBackgroundColor(float r, float g, float b);
+
     /// View controls
     void setViewFront();
     void setViewBack();

@@ -32,6 +32,11 @@ CollapsibleSection::CollapsibleSection(const QString& title, QWidget* parent)
     });
 }
 
+void CollapsibleSection::setTitle(const QString& title)
+{
+    m_headerBtn->setText(title);
+}
+
 void CollapsibleSection::setContentWidget(QWidget* widget)
 {
     m_contentLayout->addWidget(widget);

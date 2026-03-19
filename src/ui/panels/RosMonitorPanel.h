@@ -3,9 +3,6 @@
 #include <QWidget>
 #include <QTreeWidget>
 
-/**
- * @brief ROS topic monitor panel - bottom tab
- */
 class RosMonitorPanel : public QWidget
 {
     Q_OBJECT
@@ -13,6 +10,11 @@ class RosMonitorPanel : public QWidget
 public:
     explicit RosMonitorPanel(QWidget* parent = nullptr);
 
+protected:
+    void changeEvent(QEvent* event) override;
+
 private:
+    void retranslateUi();
+
     QTreeWidget* m_topicTree = nullptr;
 };

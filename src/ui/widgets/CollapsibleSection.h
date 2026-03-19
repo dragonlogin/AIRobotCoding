@@ -16,6 +16,7 @@ public:
     explicit CollapsibleSection(const QString& title, QWidget* parent = nullptr);
 
     void setContentWidget(QWidget* widget);
+    void setTitle(const QString& title);
     void setExpanded(bool expanded);
     bool isExpanded() const { return m_expanded; }
 

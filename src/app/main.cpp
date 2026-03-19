@@ -1,5 +1,8 @@
 #include <QApplication>
 #include <QSurfaceFormat>
+#include <QTranslator>
+#include <QLocale>
+#include <QSettings>
 
 #include "MainWindow.h"
 #include "PluginManager.h"
@@ -12,10 +15,14 @@
 
 int main(int argc, char* argv[])
 {
+    // High-DPI support — must be set before QApplication is constructed
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
     // OpenGL configuration
     QSurfaceFormat format;
     format.setVersion(3, 3);
-    format.setProfile(QSurfaceFormat::CompatibilityProfile); // OSG depends on fixed pipeline; CoreProfile cannot be used
+    format.setProfile(QSurfaceFormat::CompatibilityProfile);
     format.setSamples(4);
     format.setDepthBufferSize(24);
     QSurfaceFormat::setDefaultFormat(format);
@@ -25,6 +32,16 @@ int main(int argc, char* argv[])
     app.setApplicationVersion("1.0.0");
     app.setOrganizationName("AIRobot");
 
+    // Restore language from settings and install translator
+    QSettings settings("AIRobot", "AIRobotGrinding");
+    QString lang = settings.value("language", "en").toString();
+    QTranslator* translator = new QTranslator(&app);
+    if (lang == "zh") {
+        if (translator->load("zh_CN", app.applicationDirPath() + "/translations")) {
+            app.installTranslator(translator);
+        }
+    }
+
     // Create main window
     MainWindow mainWindow;
 
@@ -32,28 +49,23 @@ int main(int argc, char* argv[])
     PluginManager* pm = PluginManager::instance();
     pm->setMainWindow(&mainWindow);
 
-    // Register built-in modules (in dependency order)
     pm->registerModule(new CadModule());
     pm->registerModule(new ViewerModule());
     pm->registerModule(new RobotModule());
     pm->registerModule(new PathPlanModule());
     pm->registerModule(new GrindingModule());
 
-    // Initialize all modules
     if (!pm->initializeAll()) {
         return -1;
     }
 
-    // Set the Viewer module widget as the central widget
     auto* viewerMod = dynamic_cast<ViewerModule*>(pm->module("viewer"));
     if (viewerMod && viewerMod->viewerWidget()) {
         mainWindow.setCentralWidget(viewerMod->viewerWidget());
     }
 
-    // Load dynamic plugins (if any)
     pm->loadPlugins(app.applicationDirPath() + "/plugins");
 
-    // Startup log
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
         {"message", "AIRobot Surface Grinding System started successfully"}

@@ -3,17 +3,11 @@
 #include <QWidget>
 #include <QTreeWidget>
 #include <QVBoxLayout>
-#include <QToolButton>
 #include <QLabel>
+#include <QPushButton>
 
-/**
- * @brief Model Browser panel - left dock
- *
- * Contains three collapsible sections:
- * 1. Workpiece tree - shows STEP model topology (solid / face / edge)
- * 2. Grinding task list
- * 3. Coordinate frame management
- */
+class CollapsibleSection;
+
 class ModelBrowserPanel : public QWidget
 {
     Q_OBJECT
@@ -21,19 +15,25 @@ class ModelBrowserPanel : public QWidget
 public:
     explicit ModelBrowserPanel(QWidget* parent = nullptr);
 
+protected:
+    void changeEvent(QEvent* event) override;
+
 private:
     void setupUI();
     void setupModelTree();
     void setupTaskList();
     void setupCoordinateSection();
     void connectSignals();
+    void retranslateUi();
 
-    // Workpiece model tree
-    QTreeWidget* m_modelTree = nullptr;
-
-    // Grinding task list
-    QTreeWidget* m_taskTree = nullptr;
-
-    // Coordinate frame tree
-    QTreeWidget* m_coordTree = nullptr;
+    CollapsibleSection* m_modelSection   = nullptr;
+    CollapsibleSection* m_taskSection    = nullptr;
+    CollapsibleSection* m_coordSection   = nullptr;
+    QTreeWidget*        m_modelTree      = nullptr;
+    QTreeWidget*        m_taskTree       = nullptr;
+    QTreeWidget*        m_coordTree      = nullptr;
+    QPushButton*        m_addTaskBtn     = nullptr;
+    QPushButton*        m_removeTaskBtn  = nullptr;
+    QTreeWidgetItem*    m_workItem       = nullptr;
+    QTreeWidgetItem*    m_toolItem       = nullptr;
 };

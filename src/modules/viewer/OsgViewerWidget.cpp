@@ -269,6 +269,12 @@ void OsgViewerWidget::fitAll()
     }
 }
 
+void OsgViewerWidget::setBackgroundColor(float r, float g, float b)
+{
+    if (m_viewer.valid())
+        m_viewer->getCamera()->setClearColor(osg::Vec4(r, g, b, 1.0f));
+}
+
 void OsgViewerWidget::setViewBack() { /* similar to setViewFront, rotate 180 degrees */ }
 void OsgViewerWidget::setViewLeft() { /* rotate Y-axis -90 degrees */ }
 void OsgViewerWidget::setViewRight() { /* rotate Y-axis +90 degrees */ }

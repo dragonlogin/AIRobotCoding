@@ -53,6 +53,7 @@ if(WIN32)
 endif()
 
 find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets OpenGL)
+find_package(Qt5LinguistTools QUIET)  # optional — needed only for .ts -> .qm compilation
 find_package(OpenSceneGraph REQUIRED COMPONENTS osgViewer osgGA osgDB osgUtil osgText)
 find_package(OpenCASCADE REQUIRED)
 find_package(catkin QUIET COMPONENTS roscpp std_msgs geometry_msgs sensor_msgs)
