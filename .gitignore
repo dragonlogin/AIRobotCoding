@@ -2,3 +2,5 @@ build/
 *.STEP
 *.step
 *.stp
+.vs/
+.claude/settings.local.json
