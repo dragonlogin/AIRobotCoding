@@ -8,7 +8,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # ============================================================================
-# 依赖查找
+# Dependency resolution
 # ============================================================================
 # ── macOS ──────────────────────────────────────────────────────────────────
 if(APPLE)
@@ -31,29 +31,48 @@ if(APPLE)
 endif()
 
 # ── Windows ─────────────────────────────────────────────────────────────────
-# 推荐用 vcpkg 统一安装依赖：
-#   vcpkg install qt5-base qt5-opengl opencascade open-scene-graph orocos-kdl
-# 然后 cmake 传入 -DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake
+# Recommended: use vcpkg to install all dependencies:
+#   vcpkg install qt5-base qt5-opengl opencascade osg orocos-kdl
+# Then pass to cmake: -DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake
 #
-# 若手动安装，按实际路径设置下列变量（可在 cmake-gui 里设置）：
+# For manual installs, set these variables (e.g. via cmake-gui):
 #   Qt5_DIR        = C:/Qt/5.15.2/msvc2019_64/lib/cmake/Qt5
 #   OpenCASCADE_DIR= C:/OpenCASCADE-7.7.0/cmake
 #   OSG_DIR        = C:/OSG/lib/cmake/OpenSceneGraph
 if(WIN32)
-    # MSVC 需要定义 _USE_MATH_DEFINES 才能使用 M_PI
+    # Required by MSVC to expose M_PI from <cmath>
     add_definitions(-D_USE_MATH_DEFINES)
-    # 关闭 MSVC 的 min/max 宏，避免与 std::min/max 冲突
+    # Prevent Windows.h min/max macros from conflicting with std::min/std::max
     add_definitions(-DNOMINMAX)
-    # 让 Windows.h 只包含常用部分，加快编译
+    # Reduce Windows.h include size for faster builds
     add_definitions(-DWIN32_LEAN_AND_MEAN)
+    # Force MSVC to read/write source files as UTF-8
+    if(MSVC)
+        add_compile_options(/utf-8)
+    endif()
 endif()
 
+find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets OpenGL)
 find_package(OpenSceneGraph REQUIRED COMPONENTS osgViewer osgGA osgDB osgUtil osgText)
 find_package(OpenCASCADE REQUIRED)
 find_package(catkin QUIET COMPONENTS roscpp std_msgs geometry_msgs sensor_msgs)
 
 # ============================================================================
-# 全局包含路径
+# Output directories: all artifacts go to build/bin/<Config>
+# ============================================================================
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+# MSVC multi-config generators append Debug/Release subdirectories automatically
+foreach(_cfg Debug Release RelWithDebInfo MinSizeRel)
+    string(TOUPPER ${_cfg} _CFG)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${_CFG} "${CMAKE_BINARY_DIR}/bin/${_cfg}")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${_CFG} "${CMAKE_BINARY_DIR}/bin/${_cfg}")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${_CFG} "${CMAKE_BINARY_DIR}/lib/${_cfg}")
+endforeach()
+
+# ============================================================================
+# Global include paths
 # ============================================================================
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
@@ -67,7 +86,7 @@ if(catkin_FOUND)
 endif()
 
 # ============================================================================
-# 子模块
+# Submodules
 # ============================================================================
 add_subdirectory(src/core)
 add_subdirectory(src/modules/kinematics)

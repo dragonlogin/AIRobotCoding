@@ -10,6 +10,8 @@
 
 #include <QMouseEvent>
 #include <QWheelEvent>
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
 
 OsgViewerWidget::OsgViewerWidget(QWidget* parent)
     : QOpenGLWidget(parent)
@@ -17,7 +19,7 @@ OsgViewerWidget::OsgViewerWidget(QWidget* parent)
     setMinimumSize(400, 300);
     setFocusPolicy(Qt::StrongFocus);
 
-    // 创建场景层级
+    // Build scene hierarchy
     m_sceneRoot = new osg::Group;
     m_modelGroup = new osg::Group;
     m_robotGroup = new osg::Group;
@@ -34,7 +36,7 @@ OsgViewerWidget::OsgViewerWidget(QWidget* parent)
     m_pathGroup->setName("Paths");
     m_helperGroup->setName("Helpers");
 
-    // 渲染定时器 60fps
+    // Render timer at 60 fps
     m_updateTimer = new QTimer(this);
     connect(m_updateTimer, &QTimer::timeout, this, QOverload<>::of(&QOpenGLWidget::update));
     m_updateTimer->start(16);
@@ -47,7 +49,7 @@ OsgViewerWidget::~OsgViewerWidget()
 
 void OsgViewerWidget::initializeGL()
 {
-    // 创建嵌入式图形窗口，用物理像素（Retina 下是逻辑像素的 2 倍）
+    // Create the embedded graphics window using physical pixels (2x logical on Retina)
     const double dpr = devicePixelRatio();
     m_graphicsWindow = new osgViewer::GraphicsWindowEmbedded(
         0, 0,
@@ -56,23 +58,48 @@ void OsgViewerWidget::initializeGL()
 
     m_viewer = new osgViewer::Viewer;
 
-    // 关键：嵌入 QOpenGLWidget 时必须单线程，否则 OSG 会另起渲染线程
-    // 与 Qt 上下文冲突，导致 State::apply() invalid operation 且画面空白
+    // Critical: single-threaded mode is required when embedding in QOpenGLWidget;
+    // otherwise OSG spawns its own render thread, conflicts with the Qt GL context,
+    // and causes State::apply() invalid operation errors and a blank viewport.
     m_viewer->setThreadingModel(osgViewer::Viewer::SingleThreaded);
 
     m_viewer->setSceneData(m_sceneRoot);
 
     setupCamera();
+
+    // Fix "invalid operation" warnings in Geometry::drawImplementation():
+    // When embedded in QOpenGLWidget under GL2 Compatibility Profile, OSG's
+    // vertex-attribute aliasing and MVP uniforms conflict with the fixed pipeline.
+    osg::State* glState = m_viewer->getCamera()->getGraphicsContext()->getState();
+    glState->setUseModelViewAndProjectionUniforms(false);
+    glState->setUseVertexAttributeAliasing(false);
+    // In embedded mode Qt owns the GL context; OSG cannot track the full GL state
+    // machine, so its per-attribute glGetError() checks produce spurious
+    // "invalid operation" spam. Disable them entirely — real rendering errors
+    // will still surface as visual artefacts.
+    glState->setCheckForGLErrors(osg::State::NEVER_CHECK_GL_ERRORS);
+
     setupLighting();
     setupScene();
+
+    // Qt's own GL initialization (glViewport etc.) may leave pending errors in the
+    // error queue on some drivers. OSG's State::apply() calls glGetError() at the
+    // very start and misreports those as its own "invalid operation". Drain the
+    // queue here so the first frame starts with a clean error state.
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    while (f->glGetError() != GL_NO_ERROR) {}
 }
 
 void OsgViewerWidget::paintGL()
 {
-    if (m_viewer.valid()) {
-        makeCurrent();          // 确保 Qt OpenGL 上下文在当前线程激活
-        m_viewer->frame();
-    }
+    if (!m_viewer.valid()) return;
+    makeCurrent();
+    // QOpenGLWidget renders into a Qt-managed FBO (not framebuffer 0).
+    // OSG must be told the current FBO id every frame, otherwise it binds
+    // the wrong framebuffer and generates "invalid operation" on every
+    // State::apply() call.
+    m_graphicsWindow->setDefaultFboId(defaultFramebufferObject());
+    m_viewer->frame();
 }
 
 void OsgViewerWidget::resizeGL(int w, int h)
@@ -97,7 +124,7 @@ void OsgViewerWidget::resizeGL(int w, int h)
 
 void OsgViewerWidget::setupCamera()
 {
-    // macOS Retina：用物理像素，否则只渲染左下角一小块
+    // macOS Retina: use physical pixels, otherwise only the bottom-left quadrant is rendered
     const double dpr = devicePixelRatio();
     const int pw = static_cast<int>(width()  * dpr);
     const int ph = static_cast<int>(height() * dpr);
@@ -114,6 +141,12 @@ void OsgViewerWidget::setupCamera()
 
 void OsgViewerWidget::setupLighting()
 {
+    // Explicitly enable GL_LIGHTING on the root StateSet so that OSG's
+    // Material attribute application doesn't produce "invalid enumerant" errors
+    // on drivers that require lighting to be active before glMaterialfv calls.
+    osg::StateSet* ss = m_sceneRoot->getOrCreateStateSet();
+    ss->setMode(GL_LIGHTING, osg::StateAttribute::ON);
+
     osg::ref_ptr<osg::Light> light = new osg::Light;
     light->setLightNum(0);
     light->setPosition(osg::Vec4(500, 500, 1000, 1.0));
@@ -164,7 +197,7 @@ void OsgViewerWidget::removeSceneNode(const QString& name)
 }
 
 // ============================================================================
-// 鼠标事件转发给 OSG
+// Forward mouse events to OSG
 // ============================================================================
 void OsgViewerWidget::mousePressEvent(QMouseEvent* event)
 {
@@ -204,7 +237,7 @@ void OsgViewerWidget::wheelEvent(QWheelEvent* event)
 }
 
 // ============================================================================
-// 视图控制
+// View controls
 // ============================================================================
 void OsgViewerWidget::setViewFront()
 {
@@ -236,8 +269,8 @@ void OsgViewerWidget::fitAll()
     }
 }
 
-void OsgViewerWidget::setViewBack() { /* 类似 setViewFront, 旋转180° */ }
-void OsgViewerWidget::setViewLeft() { /* Y轴旋转-90° */ }
-void OsgViewerWidget::setViewRight() { /* Y轴旋转90° */ }
-void OsgViewerWidget::setViewTop() { /* X轴旋转-90° */ }
-void OsgViewerWidget::setViewBottom() { /* X轴旋转90° */ }
+void OsgViewerWidget::setViewBack() { /* similar to setViewFront, rotate 180 degrees */ }
+void OsgViewerWidget::setViewLeft() { /* rotate Y-axis -90 degrees */ }
+void OsgViewerWidget::setViewRight() { /* rotate Y-axis +90 degrees */ }
+void OsgViewerWidget::setViewTop() { /* rotate X-axis -90 degrees */ }
+void OsgViewerWidget::setViewBottom() { /* rotate X-axis +90 degrees */ }

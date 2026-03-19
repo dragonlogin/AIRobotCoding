@@ -1,0 +1,10 @@
+{
+  "name": "airobot-grinding",
+  "version": "1.0.0",
+  "dependencies": [
+    "qt5-base",
+    "osg",
+    "opencascade",
+    "orocos-kdl"
+  ]
+}

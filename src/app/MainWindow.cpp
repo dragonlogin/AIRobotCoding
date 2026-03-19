@@ -17,18 +17,23 @@
 #include <QDir>
 #include <QStandardPaths>
 #ifdef _WIN32
-#  define _USE_MATH_DEFINES  // MSVC 下 <cmath> 不默认导出 M_PI
+#  define _USE_MATH_DEFINES  // MSVC does not export M_PI from <cmath> by default
 #endif
 #include <cmath>
+
+// Forward declarations for file-local helpers defined later in this file
+static QString findResourceDir(const QString& subDir);
+static QString robotsResourceDir();
+static QString workpiecesResourceDir();
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {
-    setWindowTitle("AIRobot 曲面打磨系统 v1.0");
+    setWindowTitle("AIRobot Surface Grinding System v1.0");
     resize(1600, 900);
     setMinimumSize(1200, 700);
 
-    menuBar()->setNativeMenuBar(false);  // macOS 下显示在窗口内而非系统菜单栏
+    menuBar()->setNativeMenuBar(false);  // On macOS, show menu bar inside the window rather than the system menu bar
     setupMenuBar();
     setupToolBars();
     setupCentralWidget();
@@ -37,7 +42,7 @@ MainWindow::MainWindow(QWidget* parent)
     setupConnections();
     loadStyleSheet();
 
-    // 默认布局：左侧模型浏览器 250px，右侧属性面板 300px
+    // Default layout: left model browser 250px, right property panel 300px
     resizeDocks({m_modelBrowserDock}, {250}, Qt::Horizontal);
     resizeDocks({m_propertyDock}, {300}, Qt::Horizontal);
     resizeDocks({m_bottomDock}, {180}, Qt::Vertical);
@@ -45,7 +50,7 @@ MainWindow::MainWindow(QWidget* parent)
 
 MainWindow::~MainWindow()
 {
-    // 模块清理由 PluginManager 负责
+    // Module cleanup is handled by PluginManager
 }
 
 void MainWindow::registerModule(IModule* module)
@@ -55,144 +60,144 @@ void MainWindow::registerModule(IModule* module)
 
     m_modules.insert(module->moduleId(), module);
 
-    // 集成模块提供的 DockWidget
+    // Integrate dock widgets provided by the module
     for (QWidget* widget : module->dockWidgets()) {
-        // 模块自行决定停靠位置，此处不强制
+        // The module decides its own dock position; nothing is forced here
     }
 
-    // 集成模块提供的工具栏 Action
+    // Integrate toolbar actions provided by the module
     for (QAction* action : module->toolBarActions()) {
         m_grindingToolBar->addAction(action);
     }
 
-    // 集成模块提供的菜单 Action
+    // Integrate menu actions provided by the module
     for (QAction* action : module->menuActions()) {
         m_toolMenu->addAction(action);
     }
 }
 
 // ============================================================================
-// 菜单栏
+// Menu bar
 // ============================================================================
 void MainWindow::setupMenuBar()
 {
     QMenuBar* menuBar = this->menuBar();
 
-    // -- 文件菜单 --
-    m_fileMenu = menuBar->addMenu("文件(&F)");
-    QAction* importAction = m_fileMenu->addAction("导入 STEP 模型(&I)...");
+    // -- File menu --
+    m_fileMenu = menuBar->addMenu("File(&F)");
+    QAction* importAction = m_fileMenu->addAction("Import STEP Model(&I)...");
     importAction->setShortcut(QKeySequence("Ctrl+I"));
-    m_fileMenu->addAction("导入机器人模型(&R)...");
+    m_fileMenu->addAction("Import Robot Model(&R)...");
     m_fileMenu->addSeparator();
-    m_fileMenu->addAction("保存项目(&S)")->setShortcut(QKeySequence::Save);
-    m_fileMenu->addAction("另存为(&A)...");
+    m_fileMenu->addAction("Save Project(&S)")->setShortcut(QKeySequence::Save);
+    m_fileMenu->addAction("Save As(&A)...");
     m_fileMenu->addSeparator();
-    m_fileMenu->addAction("导出打磨路径...");
-    m_fileMenu->addAction("导出报告...");
+    m_fileMenu->addAction("Export Grinding Path...");
+    m_fileMenu->addAction("Export Report...");
     m_fileMenu->addSeparator();
-    QAction* exitAction = m_fileMenu->addAction("退出(&X)");
+    QAction* exitAction = m_fileMenu->addAction("Exit(&X)");
     exitAction->setShortcut(QKeySequence::Quit);
     connect(exitAction, &QAction::triggered, this, &QMainWindow::close);
 
-    // 导入 STEP 文件
+    // Import STEP file
     connect(importAction, &QAction::triggered, this, [this]() {
         QString path = QFileDialog::getOpenFileName(
-            this, "导入 STEP 模型", "",
-            "STEP 文件 (*.step *.stp);;所有文件 (*.*)");
+            this, "Import STEP Model", "",
+            "STEP Files (*.step *.stp);;All Files (*.*)");
         if (!path.isEmpty()) {
             EventBus::instance()->publish("cad.import.request", {{"path", path}});
         }
     });
 
-    // -- 编辑菜单 --
-    m_editMenu = menuBar->addMenu("编辑(&E)");
-    m_editMenu->addAction("撤销(&U)")->setShortcut(QKeySequence::Undo);
-    m_editMenu->addAction("重做(&R)")->setShortcut(QKeySequence::Redo);
+    // -- Edit menu --
+    m_editMenu = menuBar->addMenu("Edit(&E)");
+    m_editMenu->addAction("Undo(&U)")->setShortcut(QKeySequence::Undo);
+    m_editMenu->addAction("Redo(&R)")->setShortcut(QKeySequence::Redo);
     m_editMenu->addSeparator();
-    m_editMenu->addAction("首选项(&P)...");
+    m_editMenu->addAction("Preferences(&P)...");
 
-    // -- 视图菜单 --
-    m_viewMenu = menuBar->addMenu("视图(&V)");
-    m_viewMenu->addAction("前视图")->setShortcut(QKeySequence("1"));
-    m_viewMenu->addAction("后视图")->setShortcut(QKeySequence("2"));
-    m_viewMenu->addAction("左视图")->setShortcut(QKeySequence("3"));
-    m_viewMenu->addAction("右视图")->setShortcut(QKeySequence("4"));
-    m_viewMenu->addAction("顶视图")->setShortcut(QKeySequence("5"));
-    m_viewMenu->addAction("底视图")->setShortcut(QKeySequence("6"));
-    m_viewMenu->addAction("等轴测视图")->setShortcut(QKeySequence("0"));
+    // -- View menu --
+    m_viewMenu = menuBar->addMenu("View(&V)");
+    m_viewMenu->addAction("Front View")->setShortcut(QKeySequence("1"));
+    m_viewMenu->addAction("Back View")->setShortcut(QKeySequence("2"));
+    m_viewMenu->addAction("Left View")->setShortcut(QKeySequence("3"));
+    m_viewMenu->addAction("Right View")->setShortcut(QKeySequence("4"));
+    m_viewMenu->addAction("Top View")->setShortcut(QKeySequence("5"));
+    m_viewMenu->addAction("Bottom View")->setShortcut(QKeySequence("6"));
+    m_viewMenu->addAction("Isometric View")->setShortcut(QKeySequence("0"));
     m_viewMenu->addSeparator();
-    m_viewMenu->addAction("适应窗口(&F)")->setShortcut(QKeySequence("F"));
+    m_viewMenu->addAction("Fit to Window(&F)")->setShortcut(QKeySequence("F"));
     m_viewMenu->addSeparator();
-    QAction* wireframe = m_viewMenu->addAction("线框模式");
+    QAction* wireframe = m_viewMenu->addAction("Wireframe Mode");
     wireframe->setCheckable(true);
-    QAction* shaded = m_viewMenu->addAction("实体模式");
+    QAction* shaded = m_viewMenu->addAction("Shaded Mode");
     shaded->setCheckable(true);
     shaded->setChecked(true);
-    QAction* transparent = m_viewMenu->addAction("透明模式");
+    QAction* transparent = m_viewMenu->addAction("Transparent Mode");
     transparent->setCheckable(true);
 
-    // -- 工具菜单 --
-    m_toolMenu = menuBar->addMenu("工具(&T)");
-    m_toolMenu->addAction("测量距离");
-    m_toolMenu->addAction("测量角度");
-    m_toolMenu->addAction("截面分析");
-    m_toolMenu->addAction("曲率分析");
+    // -- Tools menu --
+    m_toolMenu = menuBar->addMenu("Tools(&T)");
+    m_toolMenu->addAction("Measure Distance");
+    m_toolMenu->addAction("Measure Angle");
+    m_toolMenu->addAction("Section Analysis");
+    m_toolMenu->addAction("Curvature Analysis");
 
-    // -- 机器人菜单 --
-    m_robotMenu = menuBar->addMenu("机器人(&R)");
-    m_robotMenu->addAction("连接 ROS Master...");
-    m_robotMenu->addAction("断开连接");
+    // -- Robot menu --
+    m_robotMenu = menuBar->addMenu("Robot(&R)");
+    m_robotMenu->addAction("Connect to ROS Master...");
+    m_robotMenu->addAction("Disconnect");
     m_robotMenu->addSeparator();
-    m_robotMenu->addAction("加载机器人 URDF...");
-    m_robotMenu->addAction("示教模式");
-    m_robotMenu->addAction("手动控制");
+    m_robotMenu->addAction("Load Robot URDF...");
+    m_robotMenu->addAction("Teaching Mode");
+    m_robotMenu->addAction("Manual Control");
     m_robotMenu->addSeparator();
-    QAction* eStop = m_robotMenu->addAction("急停 (&E)");
+    QAction* eStop = m_robotMenu->addAction("Emergency Stop(&E)");
     eStop->setShortcut(QKeySequence("Escape"));
 
-    // -- 路径菜单 --
-    m_pathMenu = menuBar->addMenu("路径(&P)");
-    m_pathMenu->addAction("生成打磨路径...");
-    m_pathMenu->addAction("路径优化...");
-    m_pathMenu->addAction("碰撞检测");
+    // -- Path menu --
+    m_pathMenu = menuBar->addMenu("Path(&P)");
+    m_pathMenu->addAction("Generate Grinding Path...");
+    m_pathMenu->addAction("Path Optimization...");
+    m_pathMenu->addAction("Collision Detection");
     m_pathMenu->addSeparator();
-    m_pathMenu->addAction("仿真运行(&S)")->setShortcut(QKeySequence("F5"));
-    m_pathMenu->addAction("停止仿真")->setShortcut(QKeySequence("Shift+F5"));
+    m_pathMenu->addAction("Run Simulation(&S)")->setShortcut(QKeySequence("F5"));
+    m_pathMenu->addAction("Stop Simulation")->setShortcut(QKeySequence("Shift+F5"));
     m_pathMenu->addSeparator();
-    m_pathMenu->addAction("执行打磨(&X)")->setShortcut(QKeySequence("F6"));
+    m_pathMenu->addAction("Execute Grinding(&X)")->setShortcut(QKeySequence("F6"));
 
-    // -- 窗口菜单 --
-    m_windowMenu = menuBar->addMenu("窗口(&W)");
-    // dock widget 的显示/隐藏 action 在 setupDockWidgets 中添加
+    // -- Window menu --
+    m_windowMenu = menuBar->addMenu("Window(&W)");
+    // Dock widget show/hide actions are added in setupDockWidgets
 
-    // -- 库菜单 --
-    m_libraryMenu = menuBar->addMenu("库(&L)");
+    // -- Library menu --
+    m_libraryMenu = menuBar->addMenu("Library(&L)");
     setupLibraryMenus(m_libraryMenu);
 
-    // -- 帮助菜单 --
-    m_helpMenu = menuBar->addMenu("帮助(&H)");
-    m_helpMenu->addAction("使用手册");
-    m_helpMenu->addAction("关于(&A)...");
+    // -- Help menu --
+    m_helpMenu = menuBar->addMenu("Help(&H)");
+    m_helpMenu->addAction("User Manual");
+    m_helpMenu->addAction("About(&A)...");
 }
 
 // ============================================================================
-// 机器人库 & STEP 工件库
+// Robot library & STEP workpiece library
 // ============================================================================
 void MainWindow::setupLibraryMenus(QMenu* libraryMenu)
 {
-    // ── 机器人库 ──
+    // ── Robot library ──
     static const RobotLibEntry robotLib[] = {
-        { "ur5",     "UR5",          "Universal Robots", 6, 850,  5,  { 0, -90, 90, -90,  0, 0 } },
-        { "ur10",    "UR10",         "Universal Robots", 6, 1300, 10, { 0, -90, 90, -90,  0, 0 } },
-        { "kr6_r900","KR6 R900",     "KUKA",             6, 900,  6,  { 0,  45, 90,   0, 90, 0 } },
-        { "irb1200", "IRB 1200",     "ABB",              6, 700,  5,  { 0,  30, 60,   0, 60, 0 } },
-        { "m10ia",   "M10iA",        "Fanuc",            6, 1422, 10, { 0, -60, 80,   0, 70, 0 } },
-        { "cr7ia",   "CR-7iA (协作)","Fanuc",            6, 717,  7,  { 0, -45, 90,   0, 45, 0 } },
+        { "ur5",     "UR5",                    "Universal Robots", 6, 850,  5,  { 0, -90, 90, -90,  0, 0 } },
+        { "ur10",    "UR10",                   "Universal Robots", 6, 1300, 10, { 0, -90, 90, -90,  0, 0 } },
+        { "kr6_r900","KR6 R900",               "KUKA",             6, 900,  6,  { 0,  45, 90,   0, 90, 0 } },
+        { "irb1200", "IRB 1200",               "ABB",              6, 700,  5,  { 0,  30, 60,   0, 60, 0 } },
+        { "m10ia",   "M10iA",                  "Fanuc",            6, 1422, 10, { 0, -60, 80,   0, 70, 0 } },
+        { "cr7ia",   "CR-7iA (Collaborative)", "Fanuc",            6, 717,  7,  { 0, -45, 90,   0, 45, 0 } },
     };
 
-    QMenu* robotLibMenu = libraryMenu->addMenu("机器人库");
+    QMenu* robotLibMenu = libraryMenu->addMenu("Robot Library");
     for (const auto& entry : robotLib) {
-        QString label = QString("%1  [%2]  到达 %3mm / %4kg")
+        QString label = QString("%1  [%2]  Reach %3mm / %4kg")
                             .arg(entry.name, entry.manufacturer)
                             .arg(entry.reach).arg(entry.payload);
         QAction* act = robotLibMenu->addAction(label);
@@ -203,33 +208,33 @@ void MainWindow::setupLibraryMenus(QMenu* libraryMenu)
 
     libraryMenu->addSeparator();
 
-    // ── 机器人 STEP 模型库（外观/仿真用）──
+    // ── Robot STEP model library (for appearance / simulation) ──
     robotLibMenu->addSeparator();
-    QAction* kukaStepAct = robotLibMenu->addAction("KUKA KR600 R2830  [三维模型]  导入 STEP...");
+    QAction* kukaStepAct = robotLibMenu->addAction("KUKA KR600 R2830  [3D Model]  Import STEP...");
     connect(kukaStepAct, &QAction::triggered, this, [this]() {
         QString baseDir  = robotsResourceDir();
         QString filePath = QDir(baseDir).filePath("KR600_R2830.stp");
         if (!QFile::exists(filePath))
-            filePath = QFileDialog::getOpenFileName(this, "加载机器人 STEP 模型",
-                            baseDir, "STEP 文件 (*.step *.stp)");
+            filePath = QFileDialog::getOpenFileName(this, "Load Robot STEP Model",
+                            baseDir, "STEP Files (*.step *.stp)");
         if (!filePath.isEmpty())
             EventBus::instance()->publish("cad.import.request", {{"path", filePath}});
     });
 
     libraryMenu->addSeparator();
 
-    // ── STEP 工件库 ──
+    // ── STEP workpiece library ──
     static const WorkpieceLibEntry workpieceLib[] = {
-        { "多特征机械零件",  "含平面/孔/槽，AP214 标准测试件",  "flat_plate.stp"      },
-        { "圆柱装配件",      "多零件装配，含圆柱曲面",          "cylinder.stp"        },
-        { "B样条笼形曲面",   "样条曲面结构，适合路径规划验证",  "sphere_half.stp"     },
-        { "通风叶轮",        "复杂旋转曲面，类涡轮叶片结构",    "turbine_blade.stp"   },
-        { "多面识别零件",    "多种曲面类型，适合曲面识别测试",  "freeform_surface.stp"},
-        { "复杂装配体",      "大型自由曲面装配，高面数测试",    "complex_surface.stp" },
-        { "标准装配测试件",  "AP214 装配标准测试件",            "assembly_test.stp"   },
+        { "Multi-Feature Mechanical Part",  "Planes/holes/slots, AP214 standard test piece",     "flat_plate.stp"      },
+        { "Cylindrical Assembly",           "Multi-part assembly with cylindrical surfaces",      "cylinder.stp"        },
+        { "B-Spline Cage Surface",          "Spline surface structure, suitable for path planning verification", "sphere_half.stp" },
+        { "Ventilation Impeller",           "Complex rotational surface, turbine blade-like structure", "turbine_blade.stp" },
+        { "Multi-Face Recognition Part",    "Multiple surface types, suitable for surface recognition testing", "freeform_surface.stp" },
+        { "Complex Assembly",               "Large freeform surface assembly, high face count test", "complex_surface.stp" },
+        { "Standard Assembly Test Piece",   "AP214 assembly standard test piece",                "assembly_test.stp"   },
     };
 
-    QMenu* workpieceLibMenu = libraryMenu->addMenu("STEP 工件库");
+    QMenu* workpieceLibMenu = libraryMenu->addMenu("STEP Workpiece Library");
     for (const auto& entry : workpieceLib) {
         QString label = QString("%1  —  %2").arg(entry.name, entry.description);
         QAction* act = workpieceLibMenu->addAction(label);
@@ -244,10 +249,10 @@ void MainWindow::loadRobotFromLibrary(const RobotLibEntry& entry)
     RobotState state;
     state.connected  = true;
     state.moving     = false;
-    state.statusText = QString("[库] %1 (%2) 已加载").arg(entry.name, entry.manufacturer);
+    state.statusText = QString("[Library] %1 (%2) loaded").arg(entry.name, entry.manufacturer);
     for (int i = 0; i < 6; ++i)
         state.joints[i] = entry.joints[i];
-    // 简单正运动学近似：末端 Z = reach * sin(joint[1] deg)
+    // Simple FK approximation: TCP Z = reach * sin(joint[1] deg)
     double j1r = entry.joints[1] * M_PI / 180.0;
     state.tcpPosition = QVector3D(
         static_cast<float>(entry.reach * 0.6),
@@ -256,22 +261,22 @@ void MainWindow::loadRobotFromLibrary(const RobotLibEntry& entry)
 
     DataModel::instance()->updateRobotState(state);
 
-    m_rosStatusLabel->setText(QString("机器人: %1").arg(entry.name));
+    m_rosStatusLabel->setText(QString("Robot: %1").arg(entry.name));
     EventBus::instance()->publish("log.message", {
         {"level",   "INFO"},
-        {"message", QString("已从库加载机器人: %1 | 厂商: %2 | 自由度: %3 | 到达范围: %4 mm")
+        {"message", QString("Robot loaded from library: %1 | Manufacturer: %2 | DOF: %3 | Reach: %4 mm")
              .arg(entry.name, entry.manufacturer)
              .arg(entry.dof).arg(entry.reach)}
     });
 }
 
-// 跨平台资源目录定位：
-//   macOS/Linux: 可执行文件在 build/bin/，resources 在源码根目录
-//   Windows MSVC: 可执行文件在 build/Debug 或 build/Release 下
+// Cross-platform resource directory lookup:
+//   macOS/Linux: executable is in build/bin/, resources are in the source root
+//   Windows MSVC: executable is in build/Debug or build/Release
 static QString findResourceDir(const QString& subDir)
 {
     const QString exe = QCoreApplication::applicationDirPath();
-    // 依次尝试常见的相对位置
+    // Try common relative locations in order
     for (const QString& rel : { "../resources/" + subDir,
                                  "../../resources/" + subDir,
                                  "../../../resources/" + subDir,
@@ -280,7 +285,7 @@ static QString findResourceDir(const QString& subDir)
         if (QDir(candidate).exists())
             return QDir(candidate).absolutePath();
     }
-    return QDir(exe).filePath("../resources/" + subDir); // 兜底
+    return QDir(exe).filePath("../resources/" + subDir); // fallback
 }
 
 static QString robotsResourceDir()    { return findResourceDir("robots");     }
@@ -292,12 +297,12 @@ void MainWindow::loadWorkpieceFromLibrary(const WorkpieceLibEntry& entry)
     QString filePath = QDir(baseDir).filePath(entry.fileName);
 
     if (!QFile::exists(filePath)) {
-        // 让用户手动选择
+        // Let the user select manually
         filePath = QFileDialog::getOpenFileName(
             this,
-            QString("导入工件: %1").arg(entry.name),
+            QString("Import Workpiece: %1").arg(entry.name),
             baseDir,
-            "STEP 文件 (*.step *.stp);;所有文件 (*.*)");
+            "STEP Files (*.step *.stp);;All Files (*.*)");
     }
 
     if (filePath.isEmpty())
@@ -306,64 +311,64 @@ void MainWindow::loadWorkpieceFromLibrary(const WorkpieceLibEntry& entry)
     EventBus::instance()->publish("cad.import.request", {{"path", filePath}});
     EventBus::instance()->publish("log.message", {
         {"level",   "INFO"},
-        {"message", QString("已从库加载工件: %1 — %2").arg(entry.name, entry.description)}
+        {"message", QString("Workpiece loaded from library: %1 — %2").arg(entry.name, entry.description)}
     });
 }
 
 // ============================================================================
-// 工具栏
+// Toolbars
 // ============================================================================
 void MainWindow::setupToolBars()
 {
-    // 文件工具栏
-    m_fileToolBar = addToolBar("文件");
+    // File toolbar
+    m_fileToolBar = addToolBar("File");
     m_fileToolBar->setObjectName("FileToolBar");
     m_fileToolBar->setIconSize(QSize(24, 24));
-    m_fileToolBar->addAction("导入");
-    m_fileToolBar->addAction("保存");
+    m_fileToolBar->addAction("Import");
+    m_fileToolBar->addAction("Save");
     m_fileToolBar->addSeparator();
-    m_fileToolBar->addAction("撤销");
-    m_fileToolBar->addAction("重做");
+    m_fileToolBar->addAction("Undo");
+    m_fileToolBar->addAction("Redo");
 
-    // 选择工具栏
-    m_selectionToolBar = addToolBar("选择");
+    // Selection toolbar
+    m_selectionToolBar = addToolBar("Selection");
     m_selectionToolBar->setObjectName("SelectionToolBar");
-    m_selectionToolBar->addAction("选择面");
-    m_selectionToolBar->addAction("选择边");
-    m_selectionToolBar->addAction("选择体");
-    m_selectionToolBar->addAction("框选");
+    m_selectionToolBar->addAction("Select Face");
+    m_selectionToolBar->addAction("Select Edge");
+    m_selectionToolBar->addAction("Select Solid");
+    m_selectionToolBar->addAction("Box Select");
 
-    // 机器人工具栏
-    m_robotToolBar = addToolBar("机器人");
+    // Robot toolbar
+    m_robotToolBar = addToolBar("Robot");
     m_robotToolBar->setObjectName("RobotToolBar");
-    m_robotToolBar->addAction("连接");
-    QAction* eStopBtn = m_robotToolBar->addAction("急停");
-    eStopBtn->setToolTip("紧急停止 (Esc)");
+    m_robotToolBar->addAction("Connect");
+    QAction* eStopBtn = m_robotToolBar->addAction("Emergency Stop");
+    eStopBtn->setToolTip("Emergency Stop (Esc)");
 
-    // 打磨工具栏
-    m_grindingToolBar = addToolBar("打磨");
+    // Grinding toolbar
+    m_grindingToolBar = addToolBar("Grinding");
     m_grindingToolBar->setObjectName("GrindingToolBar");
-    m_grindingToolBar->addAction("生成路径");
-    m_grindingToolBar->addAction("仿真");
-    m_grindingToolBar->addAction("执行");
+    m_grindingToolBar->addAction("Generate Path");
+    m_grindingToolBar->addAction("Simulate");
+    m_grindingToolBar->addAction("Execute");
     m_grindingToolBar->addSeparator();
-    m_grindingToolBar->addAction("测量");
-    m_grindingToolBar->addAction("截面");
+    m_grindingToolBar->addAction("Measure");
+    m_grindingToolBar->addAction("Section");
 }
 
 // ============================================================================
-// 中心区域 - 3D 视图占位（由 Viewer 模块提供实际 widget）
+// Central area - 3D view placeholder (actual widget provided by Viewer module)
 // ============================================================================
 void MainWindow::setupCentralWidget()
 {
-    // 3D 视图作为中心 widget，实际由 ViewerModule 创建
-    // 这里先放置占位 widget，模块初始化时替换
+    // The 3D view is the central widget; it is actually created by ViewerModule.
+    // A placeholder widget is placed here and replaced when the module initializes.
     QWidget* placeholder = new QWidget(this);
     placeholder->setObjectName("CentralViewport");
     placeholder->setStyleSheet("background-color: #2b2b2b;");
 
     QVBoxLayout* layout = new QVBoxLayout(placeholder);
-    QLabel* hint = new QLabel("3D 视图加载中...", placeholder);
+    QLabel* hint = new QLabel("Loading 3D Viewer...", placeholder);
     hint->setAlignment(Qt::AlignCenter);
     hint->setStyleSheet("color: #888; font-size: 18px;");
     layout->addWidget(hint);
@@ -372,81 +377,81 @@ void MainWindow::setupCentralWidget()
 }
 
 // ============================================================================
-// 停靠面板
+// Dock panels
 // ============================================================================
 void MainWindow::setupDockWidgets()
 {
-    // -- 左侧：模型浏览器 --
-    m_modelBrowserDock = new QDockWidget("模型浏览器", this);
+    // -- Left: Model browser --
+    m_modelBrowserDock = new QDockWidget("Model Browser", this);
     m_modelBrowserDock->setObjectName("ModelBrowserDock");
     m_modelBrowserDock->setWidget(new ModelBrowserPanel(this));
     m_modelBrowserDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     addDockWidget(Qt::LeftDockWidgetArea, m_modelBrowserDock);
 
-    // -- 右侧：属性面板 --
-    m_propertyDock = new QDockWidget("属性", this);
+    // -- Right: Property panel --
+    m_propertyDock = new QDockWidget("Properties", this);
     m_propertyDock->setObjectName("PropertyDock");
     m_propertyDock->setWidget(new PropertyPanel(this));
     m_propertyDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     addDockWidget(Qt::RightDockWidgetArea, m_propertyDock);
 
-    // -- 底部：日志/ROS/路径数据 标签页 --
-    m_bottomDock = new QDockWidget("输出", this);
+    // -- Bottom: Log / ROS / Path data tabs --
+    m_bottomDock = new QDockWidget("Output", this);
     m_bottomDock->setObjectName("BottomDock");
     m_bottomTabWidget = new QTabWidget(this);
-    m_bottomTabWidget->addTab(new LogPanel(this), "日志");
-    m_bottomTabWidget->addTab(new RosMonitorPanel(this), "ROS 话题");
-    m_bottomTabWidget->addTab(new PathDataPanel(this), "路径数据");
+    m_bottomTabWidget->addTab(new LogPanel(this), "Log");
+    m_bottomTabWidget->addTab(new RosMonitorPanel(this), "ROS Topics");
+    m_bottomTabWidget->addTab(new PathDataPanel(this), "Path Data");
     m_bottomDock->setWidget(m_bottomTabWidget);
     addDockWidget(Qt::BottomDockWidgetArea, m_bottomDock);
 
-    // 添加到窗口菜单
+    // Add to window menu
     m_windowMenu->addAction(m_modelBrowserDock->toggleViewAction());
     m_windowMenu->addAction(m_propertyDock->toggleViewAction());
     m_windowMenu->addAction(m_bottomDock->toggleViewAction());
     m_windowMenu->addSeparator();
-    m_windowMenu->addAction("重置布局");
+    m_windowMenu->addAction("Reset Layout");
 }
 
 // ============================================================================
-// 状态栏
+// Status bar
 // ============================================================================
 void MainWindow::setupStatusBar()
 {
     QStatusBar* sbar = statusBar();
 
-    m_coordLabel = new QLabel("坐标: X:0.0 Y:0.0 Z:0.0", this);
+    m_coordLabel = new QLabel("Coordinate: X:0.0 Y:0.0 Z:0.0", this);
     m_coordLabel->setMinimumWidth(250);
     sbar->addWidget(m_coordLabel);
 
-    m_rosStatusLabel = new QLabel("ROS: 未连接", this);
+    m_rosStatusLabel = new QLabel("ROS: Not Connected", this);
     m_rosStatusLabel->setMinimumWidth(150);
     sbar->addWidget(m_rosStatusLabel);
 
-    m_modelInfoLabel = new QLabel("模型: 无", this);
+    m_modelInfoLabel = new QLabel("Model: None", this);
     sbar->addPermanentWidget(m_modelInfoLabel);
 }
 
 // ============================================================================
-// 信号连接
+// Signal connections
 // ============================================================================
 void MainWindow::setupConnections()
 {
     auto* bus = EventBus::instance();
     auto* data = DataModel::instance();
 
-    // 模型加载完成 -> 更新状态栏
+    // Model loaded -> update status bar
     connect(data, &DataModel::modelLoaded, this, [this](const QString& path) {
-        m_modelInfoLabel->setText(QString("模型: %1").arg(QFileInfo(path).fileName()));
+        m_modelInfoLabel->setText(QString("Model: %1").arg(QFileInfo(path).fileName()));
     });
 
-    // 机器人状态变化 -> 更新状态栏
+    // Robot state changed -> update status bar
     connect(data, &DataModel::robotStateChanged, this, [this](const RobotState& state) {
         m_rosStatusLabel->setText(
-            state.connected ? "ROS: 已连接" : "ROS: 未连接");
+            state.connected ? "ROS: Connected" : "ROS: Not Connected");
     });
 
-    // 3D 视图坐标更新
+    // 3D viewer coordinate update
     connect(bus, &EventBus::eventPublished, this,
         [this](const QString& event, const QVariantMap& data) {
             if (event == "viewer.cursor.moved") {
@@ -454,7 +459,7 @@ void MainWindow::setupConnections()
                 double y = data.value("y").toDouble();
                 double z = data.value("z").toDouble();
                 m_coordLabel->setText(
-                    QString("坐标: X:%1 Y:%2 Z:%3")
+                    QString("Coordinate: X:%1 Y:%2 Z:%3")
                         .arg(x, 0, 'f', 1)
                         .arg(y, 0, 'f', 1)
                         .arg(z, 0, 'f', 1));
@@ -463,7 +468,7 @@ void MainWindow::setupConnections()
 }
 
 // ============================================================================
-// 样式表
+// Style sheet
 // ============================================================================
 void MainWindow::loadStyleSheet()
 {

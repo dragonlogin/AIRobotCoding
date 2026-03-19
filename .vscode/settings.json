@@ -1,3 +1,17 @@
 {
-    "ROS2.distro": "noetic"
+    "ROS2.distro": "noetic",
+    "cmake.configureSettings": {
+        "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    },
+    "cmake.buildType": "Release",
+    "cmake.defaultBuildTarget": "AIRobotGrinding",
+    "cmake.buildEnvironment": {
+        "PYTHONUTF8": "1",
+        "VSLANG": "1033"
+    },
+    "cmake.outputLogEncoding": "utf8",
+    "files.encoding": "utf8",
+    "terminal.integrated.env.windows": {
+        "CHCP": "65001"
+    }
 }
