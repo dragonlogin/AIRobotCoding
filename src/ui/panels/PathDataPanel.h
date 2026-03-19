@@ -4,9 +4,9 @@
 #include <QTableWidget>
 
 /**
- * @brief 路径数据面板 - 底部标签页
+ * @brief Path Data panel - bottom tab
  *
- * 显示打磨路径点的详细数据表格
+ * Displays a detailed data table of grinding path waypoints
  */
 class PathDataPanel : public QWidget
 {

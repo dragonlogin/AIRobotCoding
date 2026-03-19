@@ -10,13 +10,13 @@
 #include <TopoDS_Shape.hxx>
 
 /**
- * @brief CAD 模块 - 基于 OpenCASCADE 的 STEP 模型管理
+ * @brief CAD module - OpenCASCADE-based STEP model management
  *
- * 职责：
- * - STEP 文件导入/解析
- * - 拓扑遍历（实体/面/边）
- * - 曲面分析（类型、面积、曲率）
- * - OCC Shape -> OSG 网格 转换
+ * Responsibilities:
+ * - STEP file import and parsing
+ * - Topology traversal (solids / faces / edges)
+ * - Surface analysis (type, area, curvature)
+ * - OCC Shape -> OSG mesh conversion
  */
 class CadModule : public QObject, public IModule
 {
@@ -27,18 +27,18 @@ public:
     explicit CadModule(QObject* parent = nullptr);
 
     QString moduleId() const override { return "cad"; }
-    QString moduleName() const override { return "CAD 模型"; }
+    QString moduleName() const override { return "CAD Model"; }
     bool initialize() override;
     void shutdown() override;
     QList<QAction*> menuActions() override;
 
-    /// 获取指定索引的 TopoDS_Face
+    /// Get the TopoDS_Face at the given index
     TopoDS_Face face(int faceIndex) const;
 
-    /// 获取当前加载的形状
+    /// Get the currently loaded shape
     const TopoDS_Shape& currentShape() const { return m_reader.shape(); }
 
-    /// 获取面分析器
+    /// Get the surface analyzer for the given face index
     SurfaceAnalyzer* analyzerForFace(int faceIndex);
 
 private:

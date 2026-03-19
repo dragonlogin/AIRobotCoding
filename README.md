@@ -23,6 +23,7 @@
 ## 系统架构图
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '18px' }}}%%
 graph TB
     subgraph UI层["UI 层"]
         MW["MainWindow\n菜单栏 / 工具栏 / 状态栏"]
@@ -103,6 +104,7 @@ graph TB
 ## 模块间通信图
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '18px' }}}%%
 sequenceDiagram
     participant U as 用户操作
     participant MW as MainWindow

@@ -19,15 +19,15 @@ bool PathPlanModule::initialize()
 {
     m_simulator = new PathSimulator(this);
 
-    // 仿真完成信号
+    // Simulation finished signal
     connect(m_simulator, &PathSimulator::finished, this, []() {
         EventBus::instance()->publish("log.message", {
             {"level", "INFO"},
-            {"message", "路径仿真完成"}
+            {"message", "Path simulation finished"}
         });
     });
 
-    // 监听事件
+    // Listen for events
     connect(EventBus::instance(), &EventBus::eventPublished, this,
         [this](const QString& event, const QVariantMap& data) {
             Q_UNUSED(data)
@@ -54,20 +54,20 @@ QList<QAction*> PathPlanModule::menuActions()
 {
     QList<QAction*> actions;
 
-    QAction* genAction = new QAction("生成打磨路径", this);
+    QAction* genAction = new QAction("Generate Grinding Path", this);
     connect(genAction, &QAction::triggered, this, &PathPlanModule::generatePath);
     actions.append(genAction);
 
-    QAction* optAction = new QAction("优化路径", this);
+    QAction* optAction = new QAction("Optimize Path", this);
     connect(optAction, &QAction::triggered, this, &PathPlanModule::optimizePath);
     actions.append(optAction);
 
-    QAction* simAction = new QAction("仿真运行", this);
+    QAction* simAction = new QAction("Run Simulation", this);
     simAction->setShortcut(QKeySequence("F5"));
     connect(simAction, &QAction::triggered, this, &PathPlanModule::startSimulation);
     actions.append(simAction);
 
-    QAction* stopSimAction = new QAction("停止仿真", this);
+    QAction* stopSimAction = new QAction("Stop Simulation", this);
     stopSimAction->setShortcut(QKeySequence("Shift+F5"));
     connect(stopSimAction, &QAction::triggered, this, &PathPlanModule::stopSimulation);
     actions.append(stopSimAction);
@@ -83,7 +83,7 @@ void PathPlanModule::generatePath()
     if (data->tasks().isEmpty()) {
         bus->publish("log.message", {
             {"level", "WARN"},
-            {"message", "请先创建打磨任务并选择曲面"}
+            {"message", "Please create a grinding task and select a surface first"}
         });
         return;
     }
@@ -92,13 +92,13 @@ void PathPlanModule::generatePath()
 
     bus->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("开始生成打磨路径 [%1]，策略: Zigzag").arg(task.name)}
+        {"message", QString("Starting grinding path generation [%1], strategy: Zigzag").arg(task.name)}
     });
 
     QElapsedTimer timer;
     timer.start();
 
-    // 配置路径生成参数
+    // Configure path generation parameters
     GrindingPathGenerator::Parameters genParams;
     genParams.strategy = GrindingPathGenerator::Zigzag;
     genParams.stepOver = task.stepOver;
@@ -108,29 +108,29 @@ void PathPlanModule::generatePath()
     genParams.smoothPath = true;
     m_generator.setParameters(genParams);
 
-    // 为选中的每个面生成路径并合并
+    // Generate and merge paths for each selected face
     QVector<PathPoint> allPaths;
 
-    // 从事件总线请求面数据（由 CadModule 响应）
-    // 实际实现中通过 PluginManager 获取 CadModule 引用
-    // 这里使用 DataModel 中的面索引
+    // Request face data from the event bus (handled by CadModule)
+    // In the actual implementation, obtain a CadModule reference via PluginManager
+    // Here we use the face indices stored in DataModel
     bus->publish("cad.faces.request", {
         {"faceIndices", QVariant::fromValue(task.selectedFaces)}
     });
 
-    // 生成路径（此处为简化版，实际需获取 TopoDS_Face）
-    // 先检查是否有选中的面
+    // Generate path (simplified here; actual implementation requires TopoDS_Face)
+    // Check whether any faces are selected
     if (task.selectedFaces.isEmpty()) {
-        // 如果没有显式选中，对所有面生成
+        // If no faces explicitly selected, generate for all faces
         bus->publish("log.message", {
             {"level", "INFO"},
-            {"message", "未选择特定曲面，将对所有曲面生成路径"}
+            {"message", "No specific surfaces selected; generating path for all surfaces"}
         });
     }
 
     auto path = m_generator.generate();
 
-    // 路径优化
+    // Path optimization
     PathOptimizer::Parameters optParams;
     optParams.maxFeedRate = task.feedRate;
     optParams.basePressure = task.pressure;
@@ -145,14 +145,14 @@ void PathPlanModule::generatePath()
     auto stats = m_generator.statistics();
     bus->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("路径生成完成: %1 个点, 总长 %2 mm, 预计耗时 %3 s, 耗时 %4 ms")
+        {"message", QString("Path generation complete: %1 points, total length %2 mm, estimated time %3 s, elapsed %4 ms")
                         .arg(stats.totalPoints)
                         .arg(stats.totalLength, 0, 'f', 1)
                         .arg(stats.estimatedTime, 0, 'f', 1)
                         .arg(timer.elapsed())}
     });
 
-    // 通知 Viewer 更新路径显示
+    // Notify the Viewer to refresh the path display
     bus->publish("pathplan.path.generated", {
         {"taskName", task.name},
         {"pointCount", stats.totalPoints}
@@ -160,7 +160,7 @@ void PathPlanModule::generatePath()
 
     emit data->tasksChanged();
 
-    // 路径生成完成后自动计算 IK
+    // Automatically compute IK after path generation
     computeIK();
 }
 
@@ -173,13 +173,13 @@ void PathPlanModule::computeIK()
     GrindingTask& task = data->currentTask();
     if (task.path.isEmpty()) return;
 
-    // 懒加载运动学解算器
+    // Lazy-load the kinematics solver
     if (!m_kinematics || m_kinematics->robotName() != task.robotType) {
         m_kinematics = KinematicsFactory::create(task.robotType);
         if (!m_kinematics) {
             bus->publish("log.message", {
                 {"level", "WARN"},
-                {"message", QString("IK: 不支持的机器人型号 [%1]").arg(task.robotType)}
+                {"message", QString("IK: unsupported robot model [%1]").arg(task.robotType)}
             });
             return;
         }
@@ -187,12 +187,12 @@ void PathPlanModule::computeIK()
 
     bus->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("开始计算逆运动学，共 %1 个路径点，后端: %2")
+        {"message", QString("Starting inverse kinematics computation for %1 waypoints, backend: %2")
             .arg(task.path.size())
             .arg(KinematicsFactory::backendName())}
     });
 
-    // 构建笛卡尔位姿序列（位置 + 工具姿态）
+    // Build Cartesian pose sequence (position + tool orientation)
     QVector<CartesianPose> poses;
     poses.reserve(task.path.size());
     for (int i = 0; i < task.path.size(); ++i) {
@@ -203,7 +203,7 @@ void PathPlanModule::computeIK()
             task.path[i].position, task.path[i].normal, dir));
     }
 
-    // 以当前机器人关节角为起点（或零位）
+    // Use current robot joint angles as the starting configuration (or zero position)
     std::array<double, 6> startJoints;
     const auto& rs = data->robotState();
     for (int i = 0; i < 6; ++i) startJoints[i] = rs.joints[i];
@@ -212,7 +212,7 @@ void PathPlanModule::computeIK()
 
     bus->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("IK 完成: %1 个关节路径点，总时长 %2 s")
+        {"message", QString("IK complete: %1 joint waypoints, total duration %2 s")
             .arg(task.jointTrajectory.size())
             .arg(task.jointTrajectory.isEmpty() ? 0.0
                  : task.jointTrajectory.last().timeFromStart, 0, 'f', 1)}
@@ -230,7 +230,7 @@ void PathPlanModule::optimizePath()
     if (task.path.isEmpty()) {
         EventBus::instance()->publish("log.message", {
             {"level", "WARN"},
-            {"message", "请先生成路径再进行优化"}
+            {"message", "Please generate a path before optimizing"}
         });
         return;
     }
@@ -244,7 +244,7 @@ void PathPlanModule::optimizePath()
 
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("路径优化完成: %1 -> %2 个点, 耗时 %3 ms")
+        {"message", QString("Path optimization complete: %1 -> %2 points, elapsed %3 ms")
                         .arg(beforeCount)
                         .arg(afterCount)
                         .arg(timer.elapsed())}
@@ -263,13 +263,13 @@ void PathPlanModule::startSimulation()
     if (task.path.isEmpty()) {
         EventBus::instance()->publish("log.message", {
             {"level", "WARN"},
-            {"message", "没有可仿真的路径，请先生成路径"}
+            {"message", "No path available to simulate; please generate a path first"}
         });
         return;
     }
 
     m_simulator->setPath(task.path);
-    m_simulator->setSpeedMultiplier(5.0);  // 5倍速仿真
+    m_simulator->setSpeedMultiplier(5.0);  // 5x speed simulation
     m_simulator->start();
 }
 
@@ -278,6 +278,6 @@ void PathPlanModule::stopSimulation()
     m_simulator->stop();
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", "仿真已停止"}
+        {"message", "Simulation stopped"}
     });
 }

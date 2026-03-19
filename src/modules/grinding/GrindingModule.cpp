@@ -32,7 +32,7 @@ void GrindingModule::executeGrinding()
     if (data->tasks().isEmpty()) {
         EventBus::instance()->publish("log.message", {
             {"level", "WARN"},
-            {"message", "没有可执行的打磨任务"}
+            {"message", "No grinding task available to execute"}
         });
         return;
     }
@@ -40,24 +40,24 @@ void GrindingModule::executeGrinding()
     if (!data->robotState().connected) {
         EventBus::instance()->publish("log.message", {
             {"level", "ERROR"},
-            {"message", "机器人未连接，无法执行打磨"}
+            {"message", "Robot not connected; cannot execute grinding"}
         });
         return;
     }
 
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", "开始执行打磨任务..."}
+        {"message", "Starting grinding task execution..."}
     });
 
-    // TODO: 将路径发送给机器人执行
-    // TODO: 实时监控力控数据
+    // TODO: Send path to the robot for execution
+    // TODO: Monitor force feedback data in real time
 }
 
 void GrindingModule::stopGrinding()
 {
     EventBus::instance()->publish("log.message", {
         {"level", "WARN"},
-        {"message", "打磨任务已停止"}
+        {"message", "Grinding task stopped"}
     });
 }

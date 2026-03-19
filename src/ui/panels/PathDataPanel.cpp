@@ -13,7 +13,7 @@ PathDataPanel::PathDataPanel(QWidget* parent)
     m_table = new QTableWidget(this);
     m_table->setColumnCount(8);
     m_table->setHorizontalHeaderLabels({
-        "序号", "X", "Y", "Z", "Nx", "Ny", "Nz", "进给速度"
+        "No.", "X", "Y", "Z", "Nx", "Ny", "Nz", "Feed Rate"
     });
     m_table->horizontalHeader()->setStretchLastSection(true);
     m_table->setAlternatingRowColors(true);
@@ -21,7 +21,7 @@ PathDataPanel::PathDataPanel(QWidget* parent)
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     layout->addWidget(m_table);
 
-    // 当前任务变化时刷新
+    // Refresh when the current task changes
     connect(DataModel::instance(), &DataModel::currentTaskChanged,
             this, [this](int) { refreshTable(); });
 }

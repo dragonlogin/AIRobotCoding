@@ -33,15 +33,15 @@ QVector<PathPoint> GrindingPathGenerator::generate()
         break;
     }
 
-    // 平滑处理
+    // Smooth the path
     if (m_params.smoothPath && path.size() > 3) {
         path = smoothPath(path);
     }
 
-    // 添加进退刀
+    // Add approach and retract moves
     path = addApproachRetract(path);
 
-    // 统计
+    // Compute statistics
     m_stats.totalPoints = path.size();
     m_stats.totalLength = 0;
     for (int i = 1; i < path.size(); ++i) {
@@ -53,7 +53,7 @@ QVector<PathPoint> GrindingPathGenerator::generate()
 }
 
 // ============================================================================
-// 栅格扫描路径
+// Raster scan path
 // ============================================================================
 QVector<PathPoint> GrindingPathGenerator::generateRaster()
 {
@@ -65,8 +65,8 @@ QVector<PathPoint> GrindingPathGenerator::generateRaster()
     double vMin = adaptor.FirstVParameter();
     double vMax = adaptor.LastVParameter();
 
-    // 根据行距计算行数
-    // 先估算 U 方向的物理长度
+    // Compute line count based on step-over distance
+    // First estimate the physical length in the U direction
     gp_Pnt p1 = adaptor.Value(uMin, (vMin + vMax) / 2.0);
     gp_Pnt p2 = adaptor.Value(uMax, (vMin + vMax) / 2.0);
     double uLength = p1.Distance(p2);
@@ -111,7 +111,7 @@ QVector<PathPoint> GrindingPathGenerator::generateRaster()
 }
 
 // ============================================================================
-// 之字形路径（每行方向交替）
+// Zigzag path (alternating row direction)
 // ============================================================================
 QVector<PathPoint> GrindingPathGenerator::generateZigzag()
 {
@@ -132,7 +132,7 @@ QVector<PathPoint> GrindingPathGenerator::generateZigzag()
 
     for (int i = 0; i < lineCount; ++i) {
         double u = uMin + (uMax - uMin) * i / (lineCount - 1);
-        bool reverse = (i % 2 == 1);  // 交替方向
+        bool reverse = (i % 2 == 1);  // Alternate direction each row
 
         for (int jj = 0; jj < pointsPerLine; ++jj) {
             int j = reverse ? (pointsPerLine - 1 - jj) : jj;
@@ -168,7 +168,7 @@ QVector<PathPoint> GrindingPathGenerator::generateZigzag()
 }
 
 // ============================================================================
-// 螺旋路径
+// Spiral path
 // ============================================================================
 QVector<PathPoint> GrindingPathGenerator::generateSpiral()
 {
@@ -185,7 +185,7 @@ QVector<PathPoint> GrindingPathGenerator::generateSpiral()
     double uRange = (uMax - uMin) / 2.0;
     double vRange = (vMax - vMin) / 2.0;
 
-    // 估算圈数
+    // Estimate number of turns
     gp_Pnt pCenter = adaptor.Value(uCenter, vCenter);
     gp_Pnt pEdge = adaptor.Value(uMax, vCenter);
     double radius = pCenter.Distance(pEdge);
@@ -196,12 +196,12 @@ QVector<PathPoint> GrindingPathGenerator::generateSpiral()
     for (int i = 0; i < totalPoints; ++i) {
         double t = static_cast<double>(i) / totalPoints;
         double angle = t * turns * 2.0 * M_PI;
-        double r = t;  // 归一化半径 0->1
+        double r = t;  // Normalised radius 0->1
 
         double u = uCenter + uRange * r * qCos(angle);
         double v = vCenter + vRange * r * qSin(angle);
 
-        // 裁剪到参数域内
+        // Clamp to parameter domain
         u = qBound(uMin, u, uMax);
         v = qBound(vMin, v, vMax);
 
@@ -234,7 +234,7 @@ QVector<PathPoint> GrindingPathGenerator::generateSpiral()
 }
 
 // ============================================================================
-// 等高线路径
+// Contour path
 // ============================================================================
 QVector<PathPoint> GrindingPathGenerator::generateContour()
 {
@@ -246,7 +246,7 @@ QVector<PathPoint> GrindingPathGenerator::generateContour()
     double vMin = adaptor.FirstVParameter();
     double vMax = adaptor.LastVParameter();
 
-    // 沿 V 方向的等参数线（等高线）
+    // Iso-parameter lines along the V direction (contour lines)
     gp_Pnt p1 = adaptor.Value((uMin + uMax) / 2.0, vMin);
     gp_Pnt p2 = adaptor.Value((uMin + uMax) / 2.0, vMax);
     double vLength = p1.Distance(p2);
@@ -290,7 +290,7 @@ QVector<PathPoint> GrindingPathGenerator::generateContour()
 }
 
 // ============================================================================
-// 路径平滑 - 三次移动平均
+// Path smoothing - cubic moving average
 // ============================================================================
 QVector<PathPoint> GrindingPathGenerator::smoothPath(const QVector<PathPoint>& path)
 {
@@ -328,7 +328,7 @@ QVector<PathPoint> GrindingPathGenerator::smoothPath(const QVector<PathPoint>& p
 }
 
 // ============================================================================
-// 进退刀路径
+// Approach and retract path
 // ============================================================================
 QVector<PathPoint> GrindingPathGenerator::addApproachRetract(
     const QVector<PathPoint>& path)
@@ -338,16 +338,16 @@ QVector<PathPoint> GrindingPathGenerator::addApproachRetract(
     QVector<PathPoint> result;
     double safeH = m_params.safeHeight;
 
-    // 进刀点：第一个路径点沿法向偏移安全高度
+    // Approach point: offset the first path point along the normal by the safe height
     PathPoint approach = path.first();
     approach.position += approach.normal * static_cast<float>(safeH);
-    approach.feedRate = m_params.feedRate * 0.5;  // 进刀速度减半
+    approach.feedRate = m_params.feedRate * 0.5;  // Halve feed rate on approach
     result.append(approach);
 
-    // 主路径
+    // Main path
     result.append(path);
 
-    // 退刀点：最后一个路径点沿法向偏移安全高度
+    // Retract point: offset the last path point along the normal by the safe height
     PathPoint retract = path.last();
     retract.position += retract.normal * static_cast<float>(safeH);
     retract.feedRate = m_params.feedRate * 0.5;

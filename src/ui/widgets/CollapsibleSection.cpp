@@ -7,7 +7,7 @@ CollapsibleSection::CollapsibleSection(const QString& title, QWidget* parent)
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    // 标题按钮
+    // Header button
     m_headerBtn = new QToolButton(this);
     m_headerBtn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     m_headerBtn->setArrowType(Qt::DownArrow);
@@ -21,7 +21,7 @@ CollapsibleSection::CollapsibleSection(const QString& title, QWidget* parent)
         "QToolButton:hover { background: #4a4d4f; }");
     mainLayout->addWidget(m_headerBtn);
 
-    // 内容区域
+    // Content area
     m_contentFrame = new QFrame(this);
     m_contentLayout = new QVBoxLayout(m_contentFrame);
     m_contentLayout->setContentsMargins(0, 0, 0, 0);

@@ -4,10 +4,10 @@
 #include <QVariantMap>
 
 /**
- * @brief 全局事件总线 - 模块间解耦通信
+ * @brief Global event bus - decoupled inter-module communication
  *
- * 各模块通过事件总线发布/订阅事件，避免直接依赖。
- * 事件类型采用字符串命名空间约定，如 "cad.model.loaded", "robot.state.changed"
+ * Modules publish/subscribe to events via the event bus, avoiding direct dependencies.
+ * Event types use string namespace convention, e.g. "cad.model.loaded", "robot.state.changed"
  */
 class EventBus : public QObject
 {
@@ -16,11 +16,11 @@ class EventBus : public QObject
 public:
     static EventBus* instance();
 
-    /// 发布事件
+    /// Publish an event
     void publish(const QString& event, const QVariantMap& data = {});
 
 signals:
-    /// 统一事件信号，订阅者通过 event 名称过滤
+    /// Unified event signal; subscribers filter by event name
     void eventPublished(const QString& event, const QVariantMap& data);
 
 private:

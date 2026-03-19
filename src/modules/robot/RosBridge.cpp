@@ -25,23 +25,23 @@ RosBridge::~RosBridge()
 bool RosBridge::connectToMaster(const QString& masterUri, const QString& nodeName)
 {
 #ifdef HAS_ROS
-    // 设置 ROS Master URI
+    // Set ROS Master URI
     std::string uri = masterUri.toStdString();
     setenv("ROS_MASTER_URI", (std::string("http://") + uri).c_str(), 1);
 
-    // 初始化 ROS 节点
+    // Initialize ROS node
     int argc = 0;
     char** argv = nullptr;
     ros::init(argc, argv, nodeName.toStdString(), ros::init_options::NoSigintHandler);
 
     if (!ros::master::check()) {
-        emit errorOccurred(QString("无法连接到 ROS Master: %1").arg(masterUri));
+        emit errorOccurred(QString("Failed to connect to ROS Master: %1").arg(masterUri));
         return false;
     }
 
     ros::NodeHandle* nh = new ros::NodeHandle();
 
-    // --- 订阅关节状态 ---
+    // --- Subscribe to joint states ---
     ros::Subscriber jointSub = nh->subscribe<sensor_msgs::JointState>(
         "/joint_states", 10,
         [this](const sensor_msgs::JointState::ConstPtr& msg) {
@@ -49,22 +49,22 @@ bool RosBridge::connectToMaster(const QString& masterUri, const QString& nodeNam
 
             RobotState state;
             state.connected = true;
-            state.statusText = "运行中";
+            state.statusText = "Running";
 
-            // 更新关节值
+            // Update joint values
             for (size_t i = 0; i < std::min(msg->position.size(), size_t(6)); ++i) {
                 state.joints[i] = msg->position[i] * 180.0 / M_PI;  // rad -> deg
             }
 
             m_currentState = state;
 
-            // 发射信号到主线程
+            // Emit signal to main thread
             QMetaObject::invokeMethod(this, [this, state]() {
                 emit jointStateUpdated(state);
             }, Qt::QueuedConnection);
         });
 
-    // --- 订阅力传感器 ---
+    // --- Subscribe to force sensor ---
     ros::Subscriber wrenchSub = nh->subscribe<geometry_msgs::WrenchStamped>(
         "/wrench", 10,
         [this](const geometry_msgs::WrenchStamped::ConstPtr& msg) {
@@ -79,13 +79,13 @@ bool RosBridge::connectToMaster(const QString& masterUri, const QString& nodeNam
             }, Qt::QueuedConnection);
         });
 
-    // --- 发布者 ---
+    // --- Publishers ---
     // m_trajectoryPub = nh->advertise<trajectory_msgs::JointTrajectory>(
     //     "/grinding_trajectory", 1);
     // m_commandPub = nh->advertise<std_msgs::String>("/grinding_command", 1);
     // m_estopClient = nh->serviceClient<std_srvs::Trigger>("/emergency_stop");
 
-    // --- 启动 ROS Spin 线程 ---
+    // --- Start ROS spin thread ---
     m_spinThread = new QThread(this);
     QObject* worker = new QObject();
     worker->moveToThread(m_spinThread);
@@ -105,25 +105,25 @@ bool RosBridge::connectToMaster(const QString& masterUri, const QString& nodeNam
 
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("ROS Master 已连接: %1").arg(masterUri)}
+        {"message", QString("ROS Master connected: %1").arg(masterUri)}
     });
 
     return true;
 
 #else
-    // 无 ROS 环境时使用模拟模式
+    // No ROS environment — fall back to simulation mode
     Q_UNUSED(nodeName)
 
     EventBus::instance()->publish("log.message", {
         {"level", "WARN"},
-        {"message", QString("ROS 未启用，进入模拟模式 (Master: %1)").arg(masterUri)}
+        {"message", QString("ROS not enabled, entering simulation mode (Master: %1)").arg(masterUri)}
     });
 
     m_connected = true;
 
-    // 模拟关节状态
+    // Simulated joint state
     m_currentState.connected = true;
-    m_currentState.statusText = "模拟模式";
+    m_currentState.statusText = QStringLiteral("Simulation Mode");
 
     emit connectionChanged(true);
     emit jointStateUpdated(m_currentState);
@@ -172,15 +172,14 @@ void RosBridge::sendTrajectory(
 
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("已发送轨迹，共 %1 个路径点").arg(jointPositions.size())}
+        {"message", QString("Trajectory sent: %1 waypoints").arg(jointPositions.size())}
     });
 #else
     Q_UNUSED(jointPositions)
     Q_UNUSED(timeFromStart)
-
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", "[模拟] 轨迹已发送"}
+        {"message", "[Simulation] Trajectory sent"}
     });
 #endif
 }
@@ -205,12 +204,12 @@ void RosBridge::sendCartesianCommand(
     Q_UNUSED(rx) Q_UNUSED(ry) Q_UNUSED(rz)
     Q_UNUSED(duration)
 
-    // TODO: 通过逆运动学转换为关节空间指令
-    // 或使用 MoveIt 的笛卡尔路径规划服务
+    // TODO: Convert to joint-space command via inverse kinematics,
+    // or use MoveIt's Cartesian path planning service.
 
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("[笛卡尔] 目标: (%1, %2, %3) 姿态: (%4, %5, %6)")
+        {"message", QString("[Cartesian] Target: (%1, %2, %3) Orientation: (%4, %5, %6)")
             .arg(x, 0, 'f', 2).arg(y, 0, 'f', 2).arg(z, 0, 'f', 2)
             .arg(rx, 0, 'f', 2).arg(ry, 0, 'f', 2).arg(rz, 0, 'f', 2)}
     });
@@ -223,7 +222,7 @@ void RosBridge::emergencyStop()
         std_srvs::Trigger srv;
         // m_estopClient.call(srv);
 
-        // 同时发送停止指令
+        // Also publish a stop command
         std_msgs::String msg;
         msg.data = "EMERGENCY_STOP";
         // m_commandPub.publish(msg);
@@ -232,12 +231,12 @@ void RosBridge::emergencyStop()
 
     EventBus::instance()->publish("log.message", {
         {"level", "WARN"},
-        {"message", "急停指令已发送！"}
+        {"message", "Emergency stop command sent!"}
     });
 
     QMutexLocker locker(&m_mutex);
     m_currentState.moving = false;
-    m_currentState.statusText = "急停";
+    m_currentState.statusText = "Emergency Stop";
 }
 
 void RosBridge::sendCommand(const QString& command)
@@ -254,7 +253,7 @@ void RosBridge::sendCommand(const QString& command)
 
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("发送指令: %1").arg(command)}
+        {"message", QString("Command sent: %1").arg(command)}
     });
 }
 

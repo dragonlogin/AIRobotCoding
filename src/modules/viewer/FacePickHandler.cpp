@@ -21,13 +21,13 @@ bool FacePickHandler::handle(
     if (ea.getButton() != osgGA::GUIEventAdapter::LEFT_MOUSE_BUTTON)
         return false;
 
-    // 检查是否有鼠标移动（拖拽不触发拾取）
+    // Only trigger pick on release without drag
     if (ea.getEventType() == osgGA::GUIEventAdapter::RELEASE) {
         bool multiSelect = (ea.getModKeyMask() & osgGA::GUIEventAdapter::MODKEY_CTRL) != 0;
         pick(ea.getX(), ea.getY(), multiSelect);
     }
 
-    return false;  // 不消费事件，让相机操纵器继续工作
+    return false;  // Do not consume the event; allow the camera manipulator to continue
 }
 
 void FacePickHandler::pick(float x, float y, bool multiSelect)
@@ -48,19 +48,19 @@ void FacePickHandler::pick(float x, float y, bool multiSelect)
         return;
     }
 
-    // 获取最近的交点
+    // Get the nearest intersection
     const auto& intersection = intersector->getFirstIntersection();
     osg::NodePath& nodePath = const_cast<osg::NodePath&>(intersection.nodePath);
 
-    // 查找带有 FaceUserData 的 Geode 节点
+    // Find the Geode node that carries FaceUserData
     osg::Node* pickedNode = nullptr;
     int faceIndex = -1;
 
     for (auto it = nodePath.rbegin(); it != nodePath.rend(); ++it) {
         osg::Referenced* userData = (*it)->getUserData();
         if (userData) {
-            // 通过 dynamic_cast 或名称约定获取 faceIndex
-            // 这里通过节点名称解析
+            // Resolve faceIndex via dynamic_cast or naming convention
+            // Here we parse it from the node name
             std::string name = (*it)->getName();
             if (name.substr(0, 5) == "Face_") {
                 faceIndex = std::stoi(name.substr(5));
@@ -76,24 +76,24 @@ void FacePickHandler::pick(float x, float y, bool multiSelect)
         clearHighlights();
     }
 
-    // 切换选择状态
+    // Toggle selection state
     auto it = std::find(m_selectedNodes.begin(), m_selectedNodes.end(), pickedNode);
     if (it != m_selectedNodes.end()) {
-        // 已选中，取消选择
+        // Already selected — deselect
         highlightFace(pickedNode, false);
         m_selectedNodes.erase(it);
     } else {
-        // 新选中
+        // Newly selected
         highlightFace(pickedNode, true);
         m_selectedNodes.push_back(pickedNode);
     }
 
-    // 发布选择事件
+    // Publish selection event
     EventBus::instance()->publish("cad.face.selected", {
         {"faceIndex", faceIndex}
     });
 
-    // 发布 3D 坐标
+    // Publish 3D world coordinates
     osg::Vec3d worldPoint = intersection.getWorldIntersectPoint();
     EventBus::instance()->publish("viewer.cursor.moved", {
         {"x", worldPoint.x()},

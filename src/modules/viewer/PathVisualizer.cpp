@@ -13,7 +13,7 @@ osg::ref_ptr<osg::Group> PathVisualizer::createPathNode(
 
     if (path.isEmpty()) return group;
 
-    // === 路径线条 ===
+    // === Path line strip ===
     osg::ref_ptr<osg::Geometry> lineGeom = new osg::Geometry;
 
     osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array(path.size());
@@ -23,14 +23,14 @@ osg::ref_ptr<osg::Group> PathVisualizer::createPathNode(
         const auto& pt = path[i];
         (*vertices)[i].set(pt.position.x(), pt.position.y(), pt.position.z());
 
-        // 颜色渐变：绿色(起点) -> 黄色(中点) -> 红色(终点)
+        // Color gradient: green (start) -> yellow (mid) -> red (end)
         float t = static_cast<float>(i) / std::max(1, path.size() - 1);
         if (t < 0.5f) {
             float s = t * 2.0f;
-            (*colors)[i].set(s, 1.0f, 0.0f, 1.0f);  // 绿 -> 黄
+            (*colors)[i].set(s, 1.0f, 0.0f, 1.0f);  // green -> yellow
         } else {
             float s = (t - 0.5f) * 2.0f;
-            (*colors)[i].set(1.0f, 1.0f - s, 0.0f, 1.0f);  // 黄 -> 红
+            (*colors)[i].set(1.0f, 1.0f - s, 0.0f, 1.0f);  // yellow -> red
         }
     }
 
@@ -39,7 +39,7 @@ osg::ref_ptr<osg::Group> PathVisualizer::createPathNode(
     lineGeom->addPrimitiveSet(
         new osg::DrawArrays(osg::PrimitiveSet::LINE_STRIP, 0, path.size()));
 
-    // 线宽
+    // Line width
     osg::ref_ptr<osg::LineWidth> lineWidth = new osg::LineWidth(m_lineWidth);
     lineGeom->getOrCreateStateSet()->setAttributeAndModes(
         lineWidth, osg::StateAttribute::ON);
@@ -51,7 +51,7 @@ osg::ref_ptr<osg::Group> PathVisualizer::createPathNode(
     lineGeode->setName("PathLine");
     group->addChild(lineGeode);
 
-    // === 路径点 ===
+    // === Waypoints ===
     osg::ref_ptr<osg::Geometry> pointGeom = new osg::Geometry;
     pointGeom->setVertexArray(vertices);
 
@@ -73,7 +73,7 @@ osg::ref_ptr<osg::Group> PathVisualizer::createPathNode(
     pointGeode->setName("PathPoints");
     group->addChild(pointGeode);
 
-    // === 法向箭头 ===
+    // === Normal arrows ===
     osg::ref_ptr<osg::Geode> arrows = createNormalArrows(path);
     group->addChild(arrows);
 
@@ -88,7 +88,7 @@ osg::ref_ptr<osg::Geode> PathVisualizer::createNormalArrows(
 
     osg::ref_ptr<osg::Geometry> geom = new osg::Geometry;
 
-    // 每隔几个点画一个法向箭头，避免过于密集
+    // Draw a normal arrow every few points to avoid clutter
     int step = std::max(1, path.size() / 50);
     int arrowCount = 0;
     for (int i = 0; i < path.size(); i += step)
@@ -96,7 +96,7 @@ osg::ref_ptr<osg::Geode> PathVisualizer::createNormalArrows(
 
     osg::ref_ptr<osg::Vec3Array> vertices = new osg::Vec3Array(arrowCount * 2);
     osg::ref_ptr<osg::Vec4Array> colors = new osg::Vec4Array(1);
-    (*colors)[0].set(0.3f, 0.8f, 1.0f, 0.7f);  // 浅蓝色
+    (*colors)[0].set(0.3f, 0.8f, 1.0f, 0.7f);  // light blue
 
     int idx = 0;
     for (int i = 0; i < path.size(); i += step) {
@@ -130,7 +130,7 @@ osg::ref_ptr<osg::Geode> PathVisualizer::createCurrentPointMarker()
 
     osg::ref_ptr<osg::ShapeDrawable> sphere =
         new osg::ShapeDrawable(new osg::Sphere(osg::Vec3(0, 0, 0), 2.0f));
-    sphere->setColor(osg::Vec4(1.0f, 0.3f, 0.1f, 1.0f));  // 红色
+    sphere->setColor(osg::Vec4(1.0f, 0.3f, 0.1f, 1.0f));  // red
 
     geode->addDrawable(sphere);
     return geode;

@@ -11,15 +11,15 @@ LogPanel::LogPanel(QWidget* parent)
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->setContentsMargins(2, 2, 2, 2);
 
-    // 工具栏
+    // Toolbar
     QHBoxLayout* toolbar = new QHBoxLayout();
-    m_clearBtn = new QPushButton("清空", this);
+    m_clearBtn = new QPushButton("Clear", this);
     m_clearBtn->setFixedWidth(60);
     toolbar->addStretch();
     toolbar->addWidget(m_clearBtn);
     layout->addLayout(toolbar);
 
-    // 日志视图
+    // Log view
     m_logView = new QPlainTextEdit(this);
     m_logView->setReadOnly(true);
     m_logView->setMaximumBlockCount(5000);
@@ -29,7 +29,7 @@ LogPanel::LogPanel(QWidget* parent)
     connect(m_clearBtn, &QPushButton::clicked,
             m_logView, &QPlainTextEdit::clear);
 
-    // 监听全局事件总线上的日志事件
+    // Listen for log events on the global event bus
     connect(EventBus::instance(), &EventBus::eventPublished, this,
         [this](const QString& event, const QVariantMap& data) {
             if (event == "log.message") {

@@ -4,12 +4,10 @@ set(APP_SOURCES
     MainWindow.cpp
     PluginManager.h
     PluginManager.cpp
+    ${CMAKE_SOURCE_DIR}/resources/resources.qrc
 )
 
-# 资源文件
-qt5_add_resources(APP_RESOURCES ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
-
-add_executable(AIRobotGrinding ${APP_SOURCES} ${APP_RESOURCES})
+add_executable(AIRobotGrinding ${APP_SOURCES})
 
 target_link_libraries(AIRobotGrinding
     core

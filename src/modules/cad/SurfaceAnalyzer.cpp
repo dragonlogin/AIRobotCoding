@@ -30,10 +30,10 @@ SurfaceAnalyzer::SamplePoint SurfaceAnalyzer::evaluate(double u, double v) const
     BRepAdaptor_Surface adaptor(m_face);
     BRepLProp_SLProps props(adaptor, u, v, 2, Precision::Confusion());
 
-    // 位置
+    // Position
     pt.position = adaptor.Value(u, v);
 
-    // 法向
+    // Normal
     if (props.IsNormalDefined()) {
         gp_Dir normal = props.Normal();
         if (m_face.Orientation() == TopAbs_REVERSED) {
@@ -42,7 +42,7 @@ SurfaceAnalyzer::SamplePoint SurfaceAnalyzer::evaluate(double u, double v) const
         pt.normal = gp_Vec(normal);
     }
 
-    // 曲率
+    // Curvature
     if (props.IsCurvatureDefined()) {
         pt.minCurvature = props.MinCurvature();
         pt.maxCurvature = props.MaxCurvature();
@@ -83,7 +83,7 @@ QVector<QVector<SurfaceAnalyzer::SamplePoint>> SurfaceAnalyzer::generateIsoLines
     for (int i = 0; i < lineCount; ++i) {
         isoLines[i].resize(pointsPerLine);
 
-        // 沿 V 方向的等距线（U 固定）
+        // Iso-parameter line along the V direction (U fixed)
         double u = uMin + (uMax - uMin) * i / (lineCount - 1);
 
         for (int j = 0; j < pointsPerLine; ++j) {
@@ -99,21 +99,21 @@ gp_Vec SurfaceAnalyzer::toolNormal(double u, double v, double toolRadius) const
 {
     SamplePoint pt = evaluate(u, v);
 
-    // 基本法向
+    // Base normal
     gp_Vec normal = pt.normal;
     if (normal.Magnitude() < Precision::Confusion()) {
         return gp_Vec(0, 0, 1);
     }
     normal.Normalize();
 
-    // 曲率补偿：在凹面区域，工具需要考虑曲率半径
-    // 如果曲率半径小于工具半径，需要调整工具姿态
+    // Curvature compensation: in concave regions the tool must account for the curvature radius.
+    // If the curvature radius is smaller than the tool radius, the tool orientation must be adjusted.
     double maxAbsCurv = std::max(std::abs(pt.minCurvature), std::abs(pt.maxCurvature));
     if (maxAbsCurv > Precision::Confusion()) {
         double curvRadius = 1.0 / maxAbsCurv;
         if (curvRadius < toolRadius * 2.0) {
-            // 凹面区域，沿法向方向额外偏移
-            // 实际工程中需要更复杂的补偿算法
+            // Concave region: apply additional offset along the normal direction.
+            // A more sophisticated compensation algorithm is required in production.
         }
     }
 

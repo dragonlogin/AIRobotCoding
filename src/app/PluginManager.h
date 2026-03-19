@@ -9,10 +9,10 @@ class IModule;
 class MainWindow;
 
 /**
- * @brief 插件/模块管理器
+ * @brief Plugin/module manager
  *
- * 负责模块的注册、初始化、生命周期管理。
- * 支持静态编译模块和动态加载插件两种方式。
+ * Responsible for module registration, initialization, and lifecycle management.
+ * Supports both statically compiled modules and dynamically loaded plugins.
  */
 class PluginManager : public QObject
 {
@@ -21,25 +21,25 @@ class PluginManager : public QObject
 public:
     static PluginManager* instance();
 
-    /// 注册内置模块
+    /// Register a built-in module
     void registerModule(IModule* module);
 
-    /// 从目录加载动态插件
+    /// Load dynamic plugins from a directory
     void loadPlugins(const QString& pluginDir);
 
-    /// 初始化所有已注册模块
+    /// Initialize all registered modules
     bool initializeAll();
 
-    /// 关闭所有模块
+    /// Shut down all modules
     void shutdownAll();
 
-    /// 获取指定模块
+    /// Get a specific module by ID
     IModule* module(const QString& moduleId) const;
 
-    /// 获取所有模块
+    /// Get all modules
     QList<IModule*> allModules() const;
 
-    /// 设置主窗口（模块会将 UI 元素注册到主窗口）
+    /// Set the main window (modules register their UI elements into it)
     void setMainWindow(MainWindow* window);
 
 private:

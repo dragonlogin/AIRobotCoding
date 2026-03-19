@@ -7,35 +7,35 @@
 #include <QAction>
 
 /**
- * @brief 模块/插件接口基类
+ * @brief Base interface for modules/plugins
  *
- * 所有功能模块（CAD、Viewer、Robot、PathPlan、Grinding）都实现此接口，
- * 通过 PluginManager 统一加载和管理，实现低耦合高扩展。
+ * All functional modules (CAD, Viewer, Robot, PathPlan, Grinding) implement this interface,
+ * loaded and managed uniformly by PluginManager for low coupling and high extensibility.
  */
 class IModule
 {
 public:
     virtual ~IModule() = default;
 
-    /// 模块唯一标识
+    /// Unique module identifier
     virtual QString moduleId() const = 0;
 
-    /// 模块显示名称
+    /// Module display name
     virtual QString moduleName() const = 0;
 
-    /// 模块初始化（依赖注入、信号连接等）
+    /// Module initialization (dependency injection, signal connections, etc.)
     virtual bool initialize() = 0;
 
-    /// 模块卸载清理
+    /// Module shutdown and cleanup
     virtual void shutdown() = 0;
 
-    /// 返回该模块提供的停靠面板列表（可为空）
+    /// Returns the list of dock panels provided by this module (may be empty)
     virtual QList<QWidget*> dockWidgets() { return {}; }
 
-    /// 返回该模块提供的工具栏 Action 列表（可为空）
+    /// Returns the list of toolbar actions provided by this module (may be empty)
     virtual QList<QAction*> toolBarActions() { return {}; }
 
-    /// 返回该模块的菜单 Action 列表（可为空）
+    /// Returns the list of menu actions provided by this module (may be empty)
     virtual QList<QAction*> menuActions() { return {}; }
 };
 

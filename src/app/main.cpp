@@ -12,51 +12,51 @@
 
 int main(int argc, char* argv[])
 {
-    // OpenGL 配置
+    // OpenGL configuration
     QSurfaceFormat format;
     format.setVersion(3, 3);
-    format.setProfile(QSurfaceFormat::CompatibilityProfile); // OSG 依赖固定管线，不能用 CoreProfile
+    format.setProfile(QSurfaceFormat::CompatibilityProfile); // OSG depends on fixed pipeline; CoreProfile cannot be used
     format.setSamples(4);
     format.setDepthBufferSize(24);
     QSurfaceFormat::setDefaultFormat(format);
 
     QApplication app(argc, argv);
-    app.setApplicationName("AIRobot 曲面打磨系统");
+    app.setApplicationName("AIRobot Surface Grinding System");
     app.setApplicationVersion("1.0.0");
     app.setOrganizationName("AIRobot");
 
-    // 创建主窗口
+    // Create main window
     MainWindow mainWindow;
 
-    // 初始化插件管理器
+    // Initialize plugin manager
     PluginManager* pm = PluginManager::instance();
     pm->setMainWindow(&mainWindow);
 
-    // 注册内置模块（按依赖顺序）
+    // Register built-in modules (in dependency order)
     pm->registerModule(new CadModule());
     pm->registerModule(new ViewerModule());
     pm->registerModule(new RobotModule());
     pm->registerModule(new PathPlanModule());
     pm->registerModule(new GrindingModule());
 
-    // 初始化所有模块
+    // Initialize all modules
     if (!pm->initializeAll()) {
         return -1;
     }
 
-    // 将 Viewer 模块的 widget 设置为中心 widget
+    // Set the Viewer module widget as the central widget
     auto* viewerMod = dynamic_cast<ViewerModule*>(pm->module("viewer"));
     if (viewerMod && viewerMod->viewerWidget()) {
         mainWindow.setCentralWidget(viewerMod->viewerWidget());
     }
 
-    // 加载动态插件（如果有）
+    // Load dynamic plugins (if any)
     pm->loadPlugins(app.applicationDirPath() + "/plugins");
 
-    // 启动日志
+    // Startup log
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", "AIRobot 曲面打磨系统启动完成"}
+        {"message", "AIRobot Surface Grinding System started successfully"}
     });
 
     mainWindow.show();

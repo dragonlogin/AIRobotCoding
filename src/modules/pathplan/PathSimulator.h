@@ -6,13 +6,13 @@
 #include "core/DataModel.h"
 
 /**
- * @brief 路径仿真器 - 模拟路径执行过程
+ * @brief Path simulator - simulates path execution
  *
- * 功能：
- * - 按实际时间或倍速播放路径
- * - 实时更新机器人位姿
- * - 碰撞检测（简化版）
- * - 仿真数据记录
+ * Features:
+ * - Play back the path at real time or at a speed multiplier
+ * - Update the robot pose in real time
+ * - Collision detection (simplified)
+ * - Simulation data recording
  */
 class PathSimulator : public QObject
 {
@@ -21,41 +21,41 @@ class PathSimulator : public QObject
 public:
     explicit PathSimulator(QObject* parent = nullptr);
 
-    /// 设置要仿真的路径
+    /// Set the path to simulate
     void setPath(const QVector<PathPoint>& path);
 
-    /// 设置仿真速度倍率
+    /// Set the simulation speed multiplier
     void setSpeedMultiplier(double multiplier) { m_speedMultiplier = multiplier; }
 
-    /// 开始仿真
+    /// Start simulation
     void start();
 
-    /// 暂停仿真
+    /// Pause simulation
     void pause();
 
-    /// 停止仿真
+    /// Stop simulation
     void stop();
 
-    /// 跳转到指定进度 (0.0 ~ 1.0)
+    /// Seek to the specified progress (0.0 ~ 1.0)
     void seekTo(double progress);
 
-    /// 是否正在运行
+    /// Returns true if the simulation is running
     bool isRunning() const { return m_running; }
 
-    /// 当前进度 (0.0 ~ 1.0)
+    /// Current progress (0.0 ~ 1.0)
     double progress() const;
 
-    /// 当前路径点索引
+    /// Current path point index
     int currentIndex() const { return m_currentIndex; }
 
 signals:
-    /// 仿真位置更新
+    /// Simulation position updated
     void positionUpdated(int pointIndex, const PathPoint& point);
 
-    /// 仿真完成
+    /// Simulation finished
     void finished();
 
-    /// 仿真进度更新
+    /// Simulation progress updated
     void progressChanged(double progress);
 
 private slots:

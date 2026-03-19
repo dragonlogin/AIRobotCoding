@@ -5,14 +5,14 @@
 #include <QString>
 
 /**
- * @brief 运动学工厂
+ * @brief Kinematics factory
  *
- * 根据编译环境自动选择实现：
- *   HAS_KDL  → KdlKinematics（KDL 库）
- *   HAS_ROS  → MoveItKinematics（未来扩展）
- *   否则     → KdlKinematics（降级模式，内置数值 IK）
+ * Automatically selects an implementation based on the build environment:
+ *   HAS_KDL  -> KdlKinematics (KDL library)
+ *   HAS_ROS  -> MoveItKinematics (future extension)
+ *   otherwise -> KdlKinematics (fallback mode with built-in numerical IK)
  *
- * 用法：
+ * Usage:
  *   auto kin = KinematicsFactory::create("ur5");
  *   if (kin) { ... }
  */
@@ -21,9 +21,9 @@ class KinematicsFactory
 public:
     static std::unique_ptr<IKinematics> create(const QString& robotType = "ur5");
 
-    /// 列出当前环境支持的机器人型号
+    /// List robot models supported in the current environment
     static QStringList availableRobots();
 
-    /// 当前使用的运动学后端名称
+    /// Name of the kinematics backend currently in use
     static QString backendName();
 };

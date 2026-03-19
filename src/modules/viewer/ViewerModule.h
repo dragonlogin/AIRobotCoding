@@ -8,7 +8,7 @@ class OsgViewerWidget;
 class OccToOsgConverter;
 
 /**
- * @brief 3D 视图模块 - 管理 OSG 渲染器
+ * @brief 3D Viewer Module - manages the OSG renderer
  */
 class ViewerModule : public QObject, public IModule
 {
@@ -19,7 +19,7 @@ public:
     explicit ViewerModule(QObject* parent = nullptr);
 
     QString moduleId() const override { return "viewer"; }
-    QString moduleName() const override { return "3D 视图"; }
+    QString moduleName() const override { return "3D Viewer"; }
     bool initialize() override;
     void shutdown() override;
     QList<QAction*> toolBarActions() override;

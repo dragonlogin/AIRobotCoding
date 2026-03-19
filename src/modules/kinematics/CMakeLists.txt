@@ -12,7 +12,7 @@ target_include_directories(mod_kinematics PUBLIC
 )
 
 # ============================================================================
-# KDL 支持（macOS: brew install orocos-kdl，Ubuntu: apt install liborocos-kdl-dev）
+# KDL support (macOS: brew install orocos-kdl, Ubuntu: apt install liborocos-kdl-dev)
 # ============================================================================
 find_package(orocos_kdl QUIET)
 
@@ -23,7 +23,7 @@ target_include_directories(mod_kinematics PUBLIC
 )
 
 if(orocos_kdl_FOUND)
-    message(STATUS "KDL found: ${orocos_kdl_VERSION} — 使用 KDL 运动学解算器")
+    message(STATUS "KDL found: ${orocos_kdl_VERSION} — using KDL kinematics solver")
     find_package(Eigen3 REQUIRED)
     target_compile_definitions(mod_kinematics PUBLIC HAS_KDL)
     target_include_directories(mod_kinematics PRIVATE
@@ -32,16 +32,16 @@ if(orocos_kdl_FOUND)
     )
     target_link_libraries(mod_kinematics ${orocos_kdl_LIBRARIES} Eigen3::Eigen)
 else()
-    message(STATUS "KDL 未找到 — 使用内置数值 IK（降级模式）")
-    message(STATUS "  macOS 安装: brew install orocos-kdl")
-    message(STATUS "  Ubuntu 安装: sudo apt install liborocos-kdl-dev")
+    message(STATUS "KDL not found — falling back to built-in numerical IK")
+    message(STATUS "  macOS: brew install orocos-kdl")
+    message(STATUS "  Ubuntu: sudo apt install liborocos-kdl-dev")
 endif()
 
 # ============================================================================
-# 未来 ROS/MoveIt 扩展入口（仅 Ubuntu）
+# Future ROS/MoveIt extension point (Ubuntu only)
 # ============================================================================
 if(catkin_FOUND)
-    # TODO: 添加 MoveItKinematics 实现
+    # TODO: add MoveItKinematics implementation
     # target_compile_definitions(mod_kinematics PUBLIC HAS_ROS)
     # target_link_libraries(mod_kinematics ${catkin_LIBRARIES})
 endif()

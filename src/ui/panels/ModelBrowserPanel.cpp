@@ -19,28 +19,28 @@ void ModelBrowserPanel::setupUI()
     mainLayout->setContentsMargins(2, 2, 2, 2);
     mainLayout->setSpacing(0);
 
-    // === 工件树 ===
+    // === Workpiece tree ===
     setupModelTree();
-    CollapsibleSection* modelSection = new CollapsibleSection("工件模型", this);
+    CollapsibleSection* modelSection = new CollapsibleSection("Workpiece Model", this);
     modelSection->setContentWidget(m_modelTree);
     mainLayout->addWidget(modelSection);
 
-    // === 打磨任务 ===
+    // === Grinding tasks ===
     setupTaskList();
-    CollapsibleSection* taskSection = new CollapsibleSection("打磨任务", this);
+    CollapsibleSection* taskSection = new CollapsibleSection("Grinding Tasks", this);
 
     QWidget* taskContainer = new QWidget(this);
     QVBoxLayout* taskLayout = new QVBoxLayout(taskContainer);
     taskLayout->setContentsMargins(0, 0, 0, 0);
 
-    // 任务操作按钮
+    // Task action buttons
     QHBoxLayout* btnLayout = new QHBoxLayout();
     QPushButton* addBtn = new QPushButton("+", this);
     addBtn->setFixedSize(24, 24);
-    addBtn->setToolTip("新建打磨任务");
+    addBtn->setToolTip("New grinding task");
     QPushButton* removeBtn = new QPushButton("-", this);
     removeBtn->setFixedSize(24, 24);
-    removeBtn->setToolTip("删除选中任务");
+    removeBtn->setToolTip("Delete selected task");
     btnLayout->addWidget(addBtn);
     btnLayout->addWidget(removeBtn);
     btnLayout->addStretch();
@@ -50,18 +50,18 @@ void ModelBrowserPanel::setupUI()
     taskSection->setContentWidget(taskContainer);
     mainLayout->addWidget(taskSection);
 
-    // === 坐标系 ===
+    // === Coordinate frames ===
     setupCoordinateSection();
-    CollapsibleSection* coordSection = new CollapsibleSection("坐标系", this);
+    CollapsibleSection* coordSection = new CollapsibleSection("Coordinate Frames", this);
     coordSection->setContentWidget(m_coordTree);
     mainLayout->addWidget(coordSection);
 
     mainLayout->addStretch();
 
-    // 新建任务
+    // Create new task
     connect(addBtn, &QPushButton::clicked, this, []() {
         GrindingTask task;
-        task.name = QString("任务 %1").arg(DataModel::instance()->tasks().size() + 1);
+        task.name = QString("Task %1").arg(DataModel::instance()->tasks().size() + 1);
         DataModel::instance()->addTask(task);
     });
 }
@@ -69,20 +69,20 @@ void ModelBrowserPanel::setupUI()
 void ModelBrowserPanel::setupModelTree()
 {
     m_modelTree = new QTreeWidget(this);
-    m_modelTree->setHeaderLabels({"名称", "类型"});
+    m_modelTree->setHeaderLabels({"Name", "Type"});
     m_modelTree->header()->setStretchLastSection(true);
     m_modelTree->setAlternatingRowColors(true);
     m_modelTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_modelTree->setMinimumHeight(200);
 
-    // 右键菜单
+    // Context menu
     m_modelTree->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
 void ModelBrowserPanel::setupTaskList()
 {
     m_taskTree = new QTreeWidget(this);
-    m_taskTree->setHeaderLabels({"任务名称", "曲面数", "状态"});
+    m_taskTree->setHeaderLabels({"Task Name", "Surface Count", "Status"});
     m_taskTree->header()->setStretchLastSection(true);
     m_taskTree->setAlternatingRowColors(true);
     m_taskTree->setMinimumHeight(120);
@@ -91,11 +91,11 @@ void ModelBrowserPanel::setupTaskList()
 void ModelBrowserPanel::setupCoordinateSection()
 {
     m_coordTree = new QTreeWidget(this);
-    m_coordTree->setHeaderLabels({"坐标系", "类型"});
+    m_coordTree->setHeaderLabels({"Frame", "Type"});
     m_coordTree->setMaximumHeight(100);
 
-    auto* workItem = new QTreeWidgetItem(m_coordTree, {"工件坐标系", "固定"});
-    auto* toolItem = new QTreeWidgetItem(m_coordTree, {"工具坐标系", "TCP"});
+    auto* workItem = new QTreeWidgetItem(m_coordTree, {"Workpiece Frame", "Fixed"});
+    auto* toolItem = new QTreeWidgetItem(m_coordTree, {"Tool Frame", "TCP"});
     Q_UNUSED(workItem)
     Q_UNUSED(toolItem)
 }
@@ -104,15 +104,15 @@ void ModelBrowserPanel::connectSignals()
 {
     auto* data = DataModel::instance();
 
-    // 曲面数据变化 -> 更新模型树
+    // Surface data changed -> update model tree
     connect(data, &DataModel::surfacesChanged, this, [this]() {
         m_modelTree->clear();
         const auto& surfaces = DataModel::instance()->surfaces();
-        QTreeWidgetItem* root = new QTreeWidgetItem(m_modelTree, {"工件", "Solid"});
+        QTreeWidgetItem* root = new QTreeWidgetItem(m_modelTree, {"Workpiece", "Solid"});
 
         for (const auto& surf : surfaces) {
             auto* item = new QTreeWidgetItem(root, {
-                QString("面 %1").arg(surf.faceIndex),
+                QString("Face %1").arg(surf.faceIndex),
                 surf.surfaceType
             });
             if (surf.selectedForGrinding) {
@@ -124,7 +124,7 @@ void ModelBrowserPanel::connectSignals()
         m_modelTree->expandAll();
     });
 
-    // 任务变化 -> 更新任务列表
+    // Tasks changed -> update task list
     connect(data, &DataModel::tasksChanged, this, [this]() {
         m_taskTree->clear();
         const auto& tasks = DataModel::instance()->tasks();
@@ -132,16 +132,16 @@ void ModelBrowserPanel::connectSignals()
             new QTreeWidgetItem(m_taskTree, {
                 tasks[i].name,
                 QString::number(tasks[i].selectedFaces.size()),
-                tasks[i].path.isEmpty() ? "未规划" : "已规划"
+                tasks[i].path.isEmpty() ? "Not Planned" : "Planned"
             });
         }
     });
 
-    // 模型树选择 -> 发布面选择事件
+    // Model tree selection -> publish face selected event
     connect(m_modelTree, &QTreeWidget::itemClicked, this,
         [](QTreeWidgetItem* item, int column) {
             Q_UNUSED(column)
-            if (item->parent()) {  // 子项才是面
+            if (item->parent()) {  // Only child items are faces
                 int faceIndex = item->text(0).split(" ").last().toInt();
                 EventBus::instance()->publish("cad.face.selected",
                     {{"faceIndex", faceIndex}});

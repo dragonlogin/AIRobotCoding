@@ -1,16 +1,16 @@
 #include "StepReader.h"
 
-// OCC STEP 读取
+// OCC STEP reader
 #include <STEPControl_Reader.hxx>
 #include <IFSelect_ReturnStatus.hxx>
 
-// OCC 拓扑遍历
+// OCC topology traversal
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Solid.hxx>
 
-// OCC 几何分析
+// OCC geometric analysis
 #include <BRep_Tool.hxx>
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
@@ -21,26 +21,26 @@
 #include <GeomLProp_SLProps.hxx>
 #include <ShapeAnalysis_Surface.hxx>
 
-// OCC 网格化（供后续 OSG 使用）
+// OCC meshing (for subsequent OSG usage)
 #include <BRepMesh_IncrementalMesh.hxx>
 
 bool StepReader::load(const QString& filePath)
 {
     STEPControl_Reader reader;
 
-    // 读取文件
+    // Read file
     IFSelect_ReturnStatus status = reader.ReadFile(filePath.toUtf8().constData());
     if (status != IFSelect_RetDone) {
-        m_errorString = QString("无法读取 STEP 文件: %1 (错误码: %2)")
+        m_errorString = QString("Failed to read STEP file: %1 (error code: %2)")
                             .arg(filePath)
                             .arg(static_cast<int>(status));
         return false;
     }
 
-    // 转换所有根实体
+    // Transfer all root entities
     Standard_Integer nbRoots = reader.NbRootsForTransfer();
     if (nbRoots == 0) {
-        m_errorString = "STEP 文件中没有可转换的实体";
+        m_errorString = "No transferable entities found in STEP file";
         return false;
     }
 
@@ -48,16 +48,16 @@ bool StepReader::load(const QString& filePath)
     m_shape = reader.OneShape();
 
     if (m_shape.IsNull()) {
-        m_errorString = "转换后的形状为空";
+        m_errorString = "Transferred shape is empty";
         return false;
     }
 
-    // 预先进行网格化（三角剖分），精度 0.1mm
+    // Pre-compute mesh (triangulation) with 0.1 mm precision
     BRepMesh_IncrementalMesh mesh(m_shape, 0.1);
     mesh.Perform();
 
     if (!mesh.IsDone()) {
-        m_errorString = "网格化失败";
+        m_errorString = "Meshing failed";
         return false;
     }
 
@@ -77,7 +77,7 @@ QVector<SurfaceInfo> StepReader::analyzeSurfaces() const
         SurfaceInfo info;
         info.faceIndex = faceIndex++;
 
-        // === 曲面类型 ===
+        // === Surface type ===
         BRepAdaptor_Surface adaptor(face);
         GeomAbs_SurfaceType surfType = adaptor.GetType();
 
@@ -117,13 +117,13 @@ QVector<SurfaceInfo> StepReader::analyzeSurfaces() const
             break;
         }
 
-        // === 面积 ===
+        // === Area ===
         GProp_GProps props;
         BRepGProp::SurfaceProperties(face, props);
-        info.area = props.Mass();  // 面积值
+        info.area = props.Mass();  // Area value
 
-        // === 曲率分析 ===
-        // 在面的中心点处计算曲率和法向
+        // === Curvature analysis ===
+        // Compute curvature and normal at the centre of the face
         double uMin = adaptor.FirstUParameter();
         double uMax = adaptor.LastUParameter();
         double vMin = adaptor.FirstVParameter();
@@ -135,7 +135,7 @@ QVector<SurfaceInfo> StepReader::analyzeSurfaces() const
 
         if (slProps.IsNormalDefined()) {
             gp_Dir normal = slProps.Normal();
-            // 考虑面的朝向
+            // Account for face orientation
             if (face.Orientation() == TopAbs_REVERSED) {
                 normal.Reverse();
             }
@@ -150,7 +150,7 @@ QVector<SurfaceInfo> StepReader::analyzeSurfaces() const
             info.maxCurvature = slProps.MaxCurvature();
         }
 
-        // === 多点采样获取更精确的曲率范围 ===
+        // === Multi-point sampling for a more accurate curvature range ===
         double globalMinCurv = 1e10;
         double globalMaxCurv = -1e10;
         const int sampleCount = 5;

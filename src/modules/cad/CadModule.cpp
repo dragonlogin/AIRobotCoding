@@ -16,7 +16,7 @@ CadModule::CadModule(QObject* parent)
 
 bool CadModule::initialize()
 {
-    // 监听导入请求
+    // Listen for import requests
     connect(EventBus::instance(), &EventBus::eventPublished, this,
         [this](const QString& event, const QVariantMap& data) {
             if (event == "cad.import.request") {
@@ -69,13 +69,13 @@ void CadModule::importStepFile(const QString& path)
 
     bus->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("正在导入 STEP 文件: %1").arg(path)}
+        {"message", QString("Importing STEP file: %1").arg(path)}
     });
 
     QElapsedTimer timer;
     timer.start();
 
-    // 1. 读取 STEP 文件
+    // 1. Read STEP file
     if (!m_reader.load(path)) {
         bus->publish("log.message", {
             {"level", "ERROR"},
@@ -86,10 +86,10 @@ void CadModule::importStepFile(const QString& path)
 
     bus->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("STEP 文件读取完成，耗时 %1 ms").arg(timer.elapsed())}
+        {"message", QString("STEP file read complete, elapsed %1 ms").arg(timer.elapsed())}
     });
 
-    // 2. 提取所有面
+    // 2. Extract all faces
     m_faces.clear();
     qDeleteAll(m_analyzers);
     m_analyzers.clear();
@@ -101,24 +101,24 @@ void CadModule::importStepFile(const QString& path)
 
     bus->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("提取到 %1 个面").arg(m_faces.size())}
+        {"message", QString("Extracted %1 faces").arg(m_faces.size())}
     });
 
-    // 3. 分析曲面属性
+    // 3. Analyze surface properties
     QVector<SurfaceInfo> surfaces = m_reader.analyzeSurfaces();
 
     bus->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("曲面分析完成，共 %1 个面，总耗时 %2 ms")
+        {"message", QString("Surface analysis complete: %1 faces, total elapsed %2 ms")
                         .arg(surfaces.size())
                         .arg(timer.elapsed())}
     });
 
-    // 4. 更新数据模型
+    // 4. Update data model
     data->setModelPath(path);
     data->setSurfaces(surfaces);
 
-    // 5. 通知 Viewer 模块显示模型（携带 shape 指针，避免再走一次事件往返）
+    // 5. Notify the Viewer module to display the model (pass shape pointer to avoid a round-trip event)
     bus->publish("cad.model.loaded", {
         {"path",      path},
         {"faceCount", m_faces.size()},
@@ -128,6 +128,6 @@ void CadModule::importStepFile(const QString& path)
 
     bus->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("STEP 模型加载成功: %1").arg(path)}
+        {"message", QString("STEP model loaded successfully: %1").arg(path)}
     });
 }

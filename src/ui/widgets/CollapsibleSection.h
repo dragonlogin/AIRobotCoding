@@ -6,7 +6,7 @@
 #include <QFrame>
 
 /**
- * @brief 可折叠区域控件 - 用于模型浏览器中的分组
+ * @brief Collapsible section widget - used for grouping in the Model Browser
  */
 class CollapsibleSection : public QWidget
 {

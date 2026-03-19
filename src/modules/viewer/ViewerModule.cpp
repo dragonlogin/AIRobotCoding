@@ -20,7 +20,7 @@ bool ViewerModule::initialize()
     m_viewer = new OsgViewerWidget();
     m_converter = new OccToOsgConverter();
 
-    // 监听事件
+    // Subscribe to events
     connect(EventBus::instance(), &EventBus::eventPublished, this,
         [this](const QString& event, const QVariantMap& data) {
             if (event == "cad.model.loaded") {
@@ -51,7 +51,7 @@ void ViewerModule::onModelLoaded(const QVariantMap& data)
     quintptr ptr = data.value("shape_ptr").value<quintptr>();
     if (!ptr) {
         EventBus::instance()->publish("log.message", {
-            {"level", "ERROR"}, {"message", "ViewerModule: 未收到 shape 指针，无法显示模型"}
+            {"level", "ERROR"}, {"message", "ViewerModule: no shape pointer received, cannot display model"}
         });
         return;
     }
@@ -59,23 +59,23 @@ void ViewerModule::onModelLoaded(const QVariantMap& data)
     const TopoDS_Shape* shape = reinterpret_cast<const TopoDS_Shape*>(ptr);
     if (shape->IsNull()) {
         EventBus::instance()->publish("log.message", {
-            {"level", "ERROR"}, {"message", "ViewerModule: shape 为空"}
+            {"level", "ERROR"}, {"message", "ViewerModule: shape is null"}
         });
         return;
     }
 
-    // OCC shape → OSG 网格
+    // OCC shape -> OSG mesh
     osg::ref_ptr<osg::Group> node = m_converter->convertShape(*shape);
 
-    // 替换场景中的旧模型
+    // Replace the old model in the scene
     m_viewer->removeSceneNode("CADModel");
     m_viewer->addSceneNode(node.get(), "CADModel");
 
-    // 视图适配
+    // Fit view to model
     m_viewer->fitAll();
 
     EventBus::instance()->publish("log.message", {
-        {"level", "INFO"}, {"message", "3D 模型显示完成"}
+        {"level", "INFO"}, {"message", "3D model displayed successfully"}
     });
 }
 
@@ -83,13 +83,13 @@ void ViewerModule::onPathGenerated(const QVariantMap& data)
 {
     Q_UNUSED(data)
 
-    // 从 DataModel 获取路径数据，转换为 OSG 线条显示
+    // Fetch path data from DataModel and render as OSG line strips
     const auto& tasks = DataModel::instance()->tasks();
     if (tasks.isEmpty()) return;
 
-    // 路径可视化将在 OsgViewerWidget 中通过 pathGroup 渲染
+    // Path visualization is rendered in OsgViewerWidget via pathGroup
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", "路径可视化已更新"}
+        {"message", "Path visualization updated"}
     });
 }

@@ -15,13 +15,14 @@
 #endif
 
 /**
- * @brief 基于 KDL 的运动学实现
+ * @brief KDL-based kinematics implementation
  *
- * 无 KDL 时自动降级为简化数值 IK（仅供开发调试）
+ * Falls back automatically to a simplified numerical IK solver when KDL is not available
+ * (intended for development and debugging only).
  *
- * 编译：
- *   有 KDL（推荐）：brew install orocos-kdl
- *   无 KDL：降级为内置简化解算器
+ * Build options:
+ *   With KDL (recommended): brew install orocos-kdl
+ *   Without KDL: falls back to the built-in simplified solver
  */
 class KdlKinematics : public IKinematics
 {
@@ -47,7 +48,8 @@ public:
     QString robotName() const override { return m_config.name; }
 
 public:
-    /// 从位置 + 法向 构建打磨末端位姿（工具 Z 轴垂直曲面）
+    /// Build a grinding end-effector pose from position + surface normal
+    /// (tool Z-axis perpendicular to the surface)
     static CartesianPose poseFromNormal(const QVector3D& position,
                                         const QVector3D& normal,
                                         const QVector3D& pathDirection);
@@ -65,7 +67,7 @@ private:
     std::unique_ptr<KDL::ChainIkSolverVel_pinv>      m_ikVelSolver;
     std::unique_ptr<KDL::ChainIkSolverPos_LMA>        m_ikSolver;
 #else
-    /// 无 KDL 时：用 DH 矩阵手动计算正运动学
+    /// Without KDL: compute forward kinematics manually using DH matrices
     QMatrix4x4 dhTransform(double a, double d, double alpha, double theta) const;
 #endif
 

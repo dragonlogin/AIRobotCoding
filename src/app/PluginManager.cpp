@@ -72,7 +72,7 @@ bool PluginManager::initializeAll()
 
 void PluginManager::shutdownAll()
 {
-    // 逆序关闭
+    // Shutdown in reverse order
     for (int i = m_initOrder.size() - 1; i >= 0; --i) {
         IModule* mod = m_modules.value(m_initOrder[i]);
         mod->shutdown();

@@ -11,15 +11,15 @@
 #include <memory>
 
 /**
- * @brief 路径规划模块 - 打磨路径生成、优化与仿真
+ * @brief Path planning module - grinding path generation, optimization, and simulation
  *
- * 工作流程：
- * 1. 从 DataModel 获取选中曲面和打磨参数
- * 2. 使用 GrindingPathGenerator 生成初始路径
- * 3. 使用 PathOptimizer 优化路径
- * 4. 更新 DataModel 中的路径数据
- * 5. 通知 Viewer 模块可视化路径
- * 6. 使用 PathSimulator 进行仿真验证
+ * Workflow:
+ * 1. Retrieve selected surfaces and grinding parameters from DataModel
+ * 2. Generate the initial path using GrindingPathGenerator
+ * 3. Optimize the path using PathOptimizer
+ * 4. Update path data in DataModel
+ * 5. Notify the Viewer module to visualize the path
+ * 6. Validate the path using PathSimulator
  */
 class PathPlanModule : public QObject, public IModule
 {
@@ -30,7 +30,7 @@ public:
     explicit PathPlanModule(QObject* parent = nullptr);
 
     QString moduleId() const override { return "pathplan"; }
-    QString moduleName() const override { return "路径规划"; }
+    QString moduleName() const override { return "Path Planning"; }
     bool initialize() override;
     void shutdown() override;
     QList<QAction*> menuActions() override;

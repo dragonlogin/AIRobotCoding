@@ -6,7 +6,7 @@ PathSimulator::PathSimulator(QObject* parent)
     : QObject(parent)
 {
     m_timer = new QTimer(this);
-    m_timer->setInterval(20);  // 50Hz 更新
+    m_timer->setInterval(20);  // 50 Hz update rate
     connect(m_timer, &QTimer::timeout, this, &PathSimulator::onTimerTick);
 }
 
@@ -26,7 +26,7 @@ void PathSimulator::start()
 
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", QString("仿真开始，共 %1 个路径点，速度倍率: %2x")
+        {"message", QString("Simulation started: %1 waypoints, speed multiplier: %2x")
                         .arg(m_path.size())
                         .arg(m_speedMultiplier)}
     });
@@ -72,29 +72,29 @@ void PathSimulator::onTimerTick()
         emit finished();
         EventBus::instance()->publish("log.message", {
             {"level", "INFO"},
-            {"message", "仿真完成"}
+            {"message", "Simulation complete"}
         });
         return;
     }
 
     const PathPoint& point = m_path[m_currentIndex];
 
-    // 更新机器人 TCP 位姿（仿真）
+    // Update robot TCP pose (simulation)
     RobotState state = DataModel::instance()->robotState();
     state.tcpPosition = point.position;
-    state.tcpOrientation = point.normal * 90.0f;  // 简化姿态表示
+    state.tcpOrientation = point.normal * 90.0f;  // Simplified orientation representation
     state.moving = true;
-    state.statusText = QString("仿真 %1/%2").arg(m_currentIndex + 1).arg(m_path.size());
+    state.statusText = QString("Simulating %1/%2").arg(m_currentIndex + 1).arg(m_path.size());
     DataModel::instance()->updateRobotState(state);
 
     emit positionUpdated(m_currentIndex, point);
     emit progressChanged(progress());
 
-    // 计算下一个点的时间间隔
+    // Compute time interval to the next point
     if (m_currentIndex < m_path.size() - 1) {
         QVector3D diff = m_path[m_currentIndex + 1].position - point.position;
         double dist = static_cast<double>(diff.length());
-        double feedRate = point.feedRate / 60.0;  // mm/min -> mm/s
+        double feedRate = point.feedRate / 60.0;  // mm/min -> mm/s conversion
 
         if (feedRate > 0.001) {
             double dt = dist / (feedRate * m_speedMultiplier);

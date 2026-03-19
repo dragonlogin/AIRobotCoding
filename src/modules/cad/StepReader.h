@@ -7,28 +7,28 @@
 #include <TopoDS_Shape.hxx>
 
 /**
- * @brief STEP 文件读取器 - 基于 OpenCASCADE
+ * @brief STEP file reader - OpenCASCADE-based
  *
- * 职责：
- * - 读取 STEP/STP 文件并返回 TopoDS_Shape
- * - 遍历拓扑结构，提取所有面
- * - 分析每个面的几何属性（类型、面积、曲率、法向）
+ * Responsibilities:
+ * - Read STEP/STP files and return a TopoDS_Shape
+ * - Traverse the topology and extract all faces
+ * - Analyze the geometric properties of each face (type, area, curvature, normal)
  */
 class StepReader
 {
 public:
     StepReader() = default;
 
-    /// 读取 STEP 文件，返回是否成功
+    /// Read a STEP file; returns true on success
     bool load(const QString& filePath);
 
-    /// 获取读取到的形状
+    /// Get the loaded shape
     const TopoDS_Shape& shape() const { return m_shape; }
 
-    /// 提取所有面的几何信息
+    /// Extract geometric information for all faces
     QVector<SurfaceInfo> analyzeSurfaces() const;
 
-    /// 获取错误信息
+    /// Get the error message
     QString errorString() const { return m_errorString; }
 
 private:

@@ -7,13 +7,13 @@
 #include <gp_Vec.hxx>
 
 /**
- * @brief 曲面分析器 - 提供打磨相关的曲面几何分析功能
+ * @brief Surface analyzer - provides grinding-related surface geometry analysis
  *
- * 职责：
- * - UV 参数域采样
- * - 法向量场计算
- * - 曲率场计算
- * - 曲面离散化（为路径规划提供数据）
+ * Responsibilities:
+ * - UV parameter domain sampling
+ * - Normal vector field computation
+ * - Curvature field computation
+ * - Surface discretization (provides data for path planning)
  */
 class SurfaceAnalyzer
 {
@@ -29,23 +29,23 @@ public:
 
     SurfaceAnalyzer() = default;
 
-    /// 设置要分析的面
+    /// Set the face to analyze
     void setFace(const TopoDS_Face& face);
 
-    /// 获取 UV 参数域范围
+    /// Get the UV parameter domain bounds
     void uvBounds(double& uMin, double& uMax, double& vMin, double& vMax) const;
 
-    /// 在指定 UV 坐标处求值
+    /// Evaluate the surface at the given UV coordinates
     SamplePoint evaluate(double u, double v) const;
 
-    /// 均匀采样曲面，返回采样点网格
+    /// Uniformly sample the surface and return a grid of sample points
     QVector<QVector<SamplePoint>> sampleGrid(int uCount, int vCount) const;
 
-    /// 沿 U 方向生成等距线（用于生成打磨行路径）
+    /// Generate iso-parameter lines along the U direction (for grinding row paths)
     QVector<QVector<SamplePoint>> generateIsoLines(
         int lineCount, int pointsPerLine) const;
 
-    /// 计算指定点处的工具接触法向（考虑工具半径补偿）
+    /// Compute the tool contact normal at the given point (accounting for tool radius compensation)
     gp_Vec toolNormal(double u, double v, double toolRadius) const;
 
 private:

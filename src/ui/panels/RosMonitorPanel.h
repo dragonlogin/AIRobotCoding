@@ -4,7 +4,7 @@
 #include <QTreeWidget>
 
 /**
- * @brief ROS 话题监控面板 - 底部标签页
+ * @brief ROS topic monitor panel - bottom tab
  */
 class RosMonitorPanel : public QWidget
 {

@@ -4,10 +4,10 @@
 #include <osgViewer/Viewer>
 
 /**
- * @brief 面拾取事件处理器
+ * @brief Face pick event handler
  *
- * 通过射线相交检测实现3D场景中的面选择，
- * 支持单选、多选（Ctrl）和高亮反馈。
+ * Implements face selection in a 3D scene via ray-intersection testing.
+ * Supports single-select, multi-select (Ctrl), and highlight feedback.
  */
 class FacePickHandler : public osgGA::GUIEventHandler
 {
@@ -18,13 +18,13 @@ public:
                 osgGA::GUIActionAdapter& aa) override;
 
 private:
-    /// 执行射线拾取
+    /// Perform ray-based picking
     void pick(float x, float y, bool multiSelect);
 
-    /// 高亮指定面
+    /// Highlight the specified face
     void highlightFace(osg::Node* node, bool highlight);
 
-    /// 清除所有高亮
+    /// Clear all highlights
     void clearHighlights();
 
     osgViewer::Viewer* m_viewer = nullptr;

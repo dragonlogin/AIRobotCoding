@@ -9,20 +9,20 @@
 #include "core/DataModel.h"
 
 /**
- * @brief ROS1 通信桥接层
+ * @brief ROS1 communication bridge layer
  *
- * 封装所有 ROS1 API 调用，运行在独立线程中，
- * 通过 Qt 信号与主线程（UI）通信，避免阻塞。
+ * Wraps all ROS1 API calls, runs in a dedicated thread,
+ * and communicates with the main (UI) thread via Qt signals to avoid blocking.
  *
- * 订阅话题：
+ * Subscribed topics:
  * - /joint_states (sensor_msgs/JointState)
- * - /wrench (geometry_msgs/WrenchStamped) - 力传感器
+ * - /wrench (geometry_msgs/WrenchStamped) - force sensor
  *
- * 发布话题：
+ * Published topics:
  * - /grinding_trajectory (trajectory_msgs/JointTrajectory)
  * - /grinding_command (std_msgs/String)
  *
- * 服务：
+ * Services:
  * - /emergency_stop (std_srvs/Trigger)
  */
 class RosBridge : public QObject
@@ -33,54 +33,54 @@ public:
     explicit RosBridge(QObject* parent = nullptr);
     ~RosBridge();
 
-    /// 连接到 ROS Master
+    /// Connect to ROS Master
     bool connectToMaster(const QString& masterUri, const QString& nodeName = "airobot_grinding");
 
-    /// 断开连接
+    /// Disconnect from ROS Master
     void disconnect();
 
-    /// 是否已连接
+    /// Returns true if currently connected
     bool isConnected() const { return m_connected; }
 
-    /// 发送关节轨迹
+    /// Send a joint trajectory
     void sendTrajectory(const QVector<QVector<double>>& jointPositions,
                         const QVector<double>& timeFromStart);
 
-    /// 发送单点运动指令
+    /// Send a single-point joint command
     void sendJointCommand(const double joints[6], double duration = 1.0);
 
-    /// 发送笛卡尔空间运动指令
+    /// Send a Cartesian space motion command
     void sendCartesianCommand(double x, double y, double z,
                               double rx, double ry, double rz,
                               double duration = 1.0);
 
-    /// 急停
+    /// Trigger emergency stop
     void emergencyStop();
 
-    /// 发送自定义指令
+    /// Send a custom command string
     void sendCommand(const QString& command);
 
-    /// 获取当前关节状态
+    /// Get the current joint state
     RobotState currentState() const;
 
-    /// 获取已订阅的话题列表
+    /// Get the list of subscribed topics
     QVector<QPair<QString, QString>> subscribedTopics() const;
 
 signals:
-    /// 关节状态更新
+    /// Joint state updated
     void jointStateUpdated(const RobotState& state);
 
-    /// 力传感器数据更新
+    /// Force sensor data updated
     void wrenchUpdated(double fx, double fy, double fz,
                        double tx, double ty, double tz);
 
-    /// 连接状态变化
+    /// Connection state changed
     void connectionChanged(bool connected);
 
-    /// 轨迹执行完成
+    /// Trajectory execution finished
     void trajectoryFinished(bool success);
 
-    /// 错误发生
+    /// An error occurred
     void errorOccurred(const QString& error);
 
 private:
@@ -92,7 +92,7 @@ private:
     RobotState m_currentState;
 
 #ifdef HAS_ROS
-    // ROS 句柄和订阅者/发布者将在此声明
+    // ROS node handle, subscribers, and publishers declared here
     // ros::NodeHandle* m_nodeHandle = nullptr;
     // ros::Subscriber m_jointStateSub;
     // ros::Subscriber m_wrenchSub;

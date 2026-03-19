@@ -17,7 +17,7 @@ void PropertyPanel::setupUI()
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(4, 4, 4, 4);
 
-    // 使用 QScrollArea 包裹，防止内容过多
+    // Wrap in QScrollArea to handle overflow content
     QScrollArea* scrollArea = new QScrollArea(this);
     scrollArea->setWidgetResizable(true);
 
@@ -39,7 +39,7 @@ void PropertyPanel::setupUI()
 
 void PropertyPanel::setupSurfaceInfo()
 {
-    m_surfacePage = new QGroupBox("曲面信息", this);
+    m_surfacePage = new QGroupBox("Surface Info", this);
     QFormLayout* form = new QFormLayout(m_surfacePage);
 
     m_surfTypeLabel = new QLabel("-", this);
@@ -47,22 +47,22 @@ void PropertyPanel::setupSurfaceInfo()
     m_surfCurvLabel = new QLabel("-", this);
     m_surfNormalLabel = new QLabel("-", this);
 
-    form->addRow("类型:", m_surfTypeLabel);
-    form->addRow("面积:", m_surfAreaLabel);
-    form->addRow("曲率范围:", m_surfCurvLabel);
-    form->addRow("法向:", m_surfNormalLabel);
+    form->addRow("Type:", m_surfTypeLabel);
+    form->addRow("Area:", m_surfAreaLabel);
+    form->addRow("Curvature Range:", m_surfCurvLabel);
+    form->addRow("Normal:", m_surfNormalLabel);
 }
 
 void PropertyPanel::setupGrindingParams()
 {
-    m_grindingPage = new QGroupBox("打磨参数", this);
+    m_grindingPage = new QGroupBox("Grinding Parameters", this);
     QFormLayout* form = new QFormLayout(m_grindingPage);
 
     m_toolTypeCombo = new QComboBox(this);
     m_toolTypeCombo->addItems({
-        "砂轮-80#", "砂轮-120#", "砂轮-240#",
-        "砂带-80#", "砂带-120#", "砂带-240#",
-        "抛光轮-细", "抛光轮-超细"
+        "Grinding Wheel-80#", "Grinding Wheel-120#", "Grinding Wheel-240#",
+        "Abrasive Belt-80#", "Abrasive Belt-120#", "Abrasive Belt-240#",
+        "Polishing Wheel-Fine", "Polishing Wheel-Superfine"
     });
 
     m_spindleSpeedSpin = new QDoubleSpinBox(this);
@@ -91,16 +91,16 @@ void PropertyPanel::setupGrindingParams()
     m_stepOverSpin->setSingleStep(0.1);
     m_stepOverSpin->setDecimals(1);
 
-    form->addRow("打磨工具:", m_toolTypeCombo);
-    form->addRow("主轴转速:", m_spindleSpeedSpin);
-    form->addRow("进给速度:", m_feedRateSpin);
-    form->addRow("打磨压力:", m_pressureSpin);
-    form->addRow("行距:", m_stepOverSpin);
+    form->addRow("Grinding Tool:", m_toolTypeCombo);
+    form->addRow("Spindle Speed:", m_spindleSpeedSpin);
+    form->addRow("Feed Rate:", m_feedRateSpin);
+    form->addRow("Grinding Pressure:", m_pressureSpin);
+    form->addRow("Step Over:", m_stepOverSpin);
 }
 
 void PropertyPanel::setupRobotStatus()
 {
-    m_robotPage = new QGroupBox("机器人状态", this);
+    m_robotPage = new QGroupBox("Robot Status", this);
     QFormLayout* form = new QFormLayout(m_robotPage);
 
     for (int i = 0; i < 6; ++i) {
@@ -110,12 +110,12 @@ void PropertyPanel::setupRobotStatus()
 
     m_tcpPosLabel = new QLabel("[0.0, 0.0, 0.0]", this);
     m_tcpOriLabel = new QLabel("[0.0, 0.0, 0.0]", this);
-    m_robotStatusLabel = new QLabel("未连接", this);
+    m_robotStatusLabel = new QLabel("Not Connected", this);
     m_robotStatusLabel->setStyleSheet("color: #e74c3c; font-weight: bold;");
 
-    form->addRow("TCP 位置:", m_tcpPosLabel);
-    form->addRow("TCP 姿态:", m_tcpOriLabel);
-    form->addRow("状态:", m_robotStatusLabel);
+    form->addRow("TCP Position:", m_tcpPosLabel);
+    form->addRow("TCP Orientation:", m_tcpOriLabel);
+    form->addRow("Status:", m_robotStatusLabel);
 }
 
 void PropertyPanel::connectSignals()
@@ -123,7 +123,7 @@ void PropertyPanel::connectSignals()
     auto* bus = EventBus::instance();
     auto* data = DataModel::instance();
 
-    // 曲面选择 -> 更新曲面信息
+    // Surface selected -> update surface info
     connect(bus, &EventBus::eventPublished, this,
         [this](const QString& event, const QVariantMap& evData) {
             if (event == "cad.face.selected") {
@@ -148,7 +148,7 @@ void PropertyPanel::connectSignals()
             }
         });
 
-    // 机器人状态更新
+    // Robot state update
     connect(data, &DataModel::robotStateChanged, this,
         [this](const RobotState& state) {
             for (int i = 0; i < 6; ++i) {
@@ -167,17 +167,17 @@ void PropertyPanel::connectSignals()
                     .arg(state.tcpOrientation.z(), 0, 'f', 2));
 
             if (state.connected) {
-                m_robotStatusLabel->setText("已连接");
+                m_robotStatusLabel->setText("Connected");
                 m_robotStatusLabel->setStyleSheet(
                     "color: #2ecc71; font-weight: bold;");
             } else {
-                m_robotStatusLabel->setText("未连接");
+                m_robotStatusLabel->setText("Not Connected");
                 m_robotStatusLabel->setStyleSheet(
                     "color: #e74c3c; font-weight: bold;");
             }
         });
 
-    // 打磨参数变化 -> 更新 DataModel
+    // Grinding parameter changed -> update DataModel
     connect(m_toolTypeCombo, &QComboBox::currentTextChanged, this,
         [](const QString& text) {
             auto* data = DataModel::instance();

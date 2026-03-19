@@ -6,19 +6,19 @@
 #include <QVector3D>
 #include <memory>
 
-// 前向声明 OCC 类型
+// Forward declaration of OCC types
 class TopoDS_Shape;
 
-// 运动学数据类型
+// Kinematics data types
 #include "modules/kinematics/IKinematics.h"
 
 /**
- * @brief 曲面信息
+ * @brief Surface information
  */
 struct SurfaceInfo
 {
     int faceIndex = -1;
-    QString surfaceType;        // "Plane", "BSpline", "Cylinder" 等
+    QString surfaceType;        // "Plane", "BSpline", "Cylinder", etc.
     double area = 0.0;
     double minCurvature = 0.0;
     double maxCurvature = 0.0;
@@ -27,7 +27,7 @@ struct SurfaceInfo
 };
 
 /**
- * @brief 打磨路径点
+ * @brief Grinding path point
  */
 struct PathPoint
 {
@@ -38,28 +38,28 @@ struct PathPoint
 };
 
 /**
- * @brief 打磨任务
+ * @brief Grinding task
  */
 struct GrindingTask
 {
     QString name;
     QVector<int> selectedFaces;
     QVector<PathPoint> path;
-    QVector<JointWaypoint> jointTrajectory;  // IK 求解后的关节轨迹
+    QVector<JointWaypoint> jointTrajectory;  // Joint trajectory after IK solve
 
-    // 打磨参数
-    QString toolType = "砂轮-80#";
+    // Grinding parameters
+    QString toolType = "GrindingWheel-80#";
     double spindleSpeed = 3000;  // rpm
     double feedRate = 500;       // mm/min
     double pressure = 10.0;      // N
     double stepOver = 2.0;       // mm
 
-    // 机器人配置
+    // Robot configuration
     QString robotType = "ur5";
 };
 
 /**
- * @brief 机器人状态
+ * @brief Robot state
  */
 struct RobotState
 {
@@ -68,11 +68,11 @@ struct RobotState
     QVector3D tcpOrientation;   // RPY
     bool connected = false;
     bool moving = false;
-    QString statusText = "未连接";
+    QString statusText = "Not Connected";
 };
 
 /**
- * @brief 全局数据模型 - 集中管理工件、任务、机器人状态
+ * @brief Global data model - centrally manages workpiece, tasks, and robot state
  */
 class DataModel : public QObject
 {
@@ -81,21 +81,21 @@ class DataModel : public QObject
 public:
     static DataModel* instance();
 
-    // -- 工件模型 --
+    // -- Workpiece model --
     void setModelPath(const QString& path);
     QString modelPath() const { return m_modelPath; }
 
     void setSurfaces(const QVector<SurfaceInfo>& surfaces);
     const QVector<SurfaceInfo>& surfaces() const { return m_surfaces; }
 
-    // -- 打磨任务 --
+    // -- Grinding tasks --
     void addTask(const GrindingTask& task);
     void removeTask(int index);
     const QVector<GrindingTask>& tasks() const { return m_tasks; }
     GrindingTask& currentTask();
     void setCurrentTaskIndex(int index);
 
-    // -- 机器人状态 --
+    // -- Robot state --
     void updateRobotState(const RobotState& state);
     const RobotState& robotState() const { return m_robotState; }
 

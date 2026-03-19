@@ -4,7 +4,7 @@
 
 std::unique_ptr<IKinematics> KinematicsFactory::create(const QString& robotType)
 {
-    // 未来扩展：HAS_ROS 时可切换到 MoveItKinematics
+    // Future extension: switch to MoveItKinematics when HAS_ROS is defined
     // #ifdef HAS_ROS
     //     auto kin = std::make_unique<MoveItKinematics>();
     // #else
@@ -12,12 +12,12 @@ std::unique_ptr<IKinematics> KinematicsFactory::create(const QString& robotType)
     // #endif
 
     if (!kin->setRobotConfig(robotType)) {
-        qWarning() << "KinematicsFactory: 无法创建机器人" << robotType << "的运动学解算器";
+        qWarning() << "KinematicsFactory: failed to create kinematics solver for robot" << robotType;
         return nullptr;
     }
 
-    qDebug() << "KinematicsFactory: 已创建" << kin->robotName()
-             << "运动学解算器，后端:" << backendName();
+    qDebug() << "KinematicsFactory: created" << kin->robotName()
+             << "kinematics solver, backend:" << backendName();
     return kin;
 }
 
@@ -33,6 +33,6 @@ QString KinematicsFactory::backendName()
 #elif defined(HAS_ROS)
     return "MoveIt!";
 #else
-    return "内置数值 IK（降级模式）";
+    return "Built-in numerical IK (fallback mode)";
 #endif
 }

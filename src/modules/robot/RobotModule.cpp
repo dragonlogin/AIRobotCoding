@@ -15,7 +15,7 @@ bool RobotModule::initialize()
 {
     m_bridge = new RosBridge(this);
 
-    // RosBridge 信号 -> DataModel 更新
+    // RosBridge signals -> DataModel updates
     connect(m_bridge, &RosBridge::jointStateUpdated, this,
         [](const RobotState& state) {
             DataModel::instance()->updateRobotState(state);
@@ -25,7 +25,7 @@ bool RobotModule::initialize()
         [](bool connected) {
             RobotState state;
             state.connected = connected;
-            state.statusText = connected ? "已连接" : "未连接";
+            state.statusText = connected ? "Connected" : "Disconnected";
             DataModel::instance()->updateRobotState(state);
         });
 
@@ -36,7 +36,7 @@ bool RobotModule::initialize()
             });
         });
 
-    // 力传感器数据 -> EventBus
+    // Force sensor data -> EventBus
     connect(m_bridge, &RosBridge::wrenchUpdated, this,
         [](double fx, double fy, double fz, double tx, double ty, double tz) {
             EventBus::instance()->publish("robot.wrench.updated", {
@@ -45,7 +45,7 @@ bool RobotModule::initialize()
             });
         });
 
-    // 监听事件总线
+    // Listen to the event bus
     connect(EventBus::instance(), &EventBus::eventPublished, this,
         [this](const QString& event, const QVariantMap& data) {
             if (event == "robot.connect.request") {
@@ -55,26 +55,26 @@ bool RobotModule::initialize()
             } else if (event == "robot.estop") {
                 emergencyStop();
             } else if (event == "robot.send.trajectory") {
-                // 从事件数据中提取轨迹并发送
-                // 实际使用中通过直接调用 bridge 接口
+                // Extract trajectory from event data and send
+                // In practice, call the bridge interface directly
             }
         });
 
-    // 模拟模式定时器
+    // Simulation mode timer
     m_simTimer = new QTimer(this);
     connect(m_simTimer, &QTimer::timeout, this, [this]() {
         m_simTime += 0.05;  // 50ms
 
         RobotState state;
         state.connected = true;
-        state.statusText = "模拟运行";
+        state.statusText = "Simulation Running";
 
-        // 模拟关节运动（正弦波）
+        // Simulate joint motion (sine wave)
         for (int i = 0; i < 6; ++i) {
             state.joints[i] = 30.0 * qSin(m_simTime * (0.5 + i * 0.1));
         }
 
-        // 模拟 TCP 位置
+        // Simulated TCP position
         state.tcpPosition = QVector3D(
             static_cast<float>(400 + 100 * qCos(m_simTime * 0.3)),
             static_cast<float>(200 * qSin(m_simTime * 0.3)),
@@ -100,7 +100,7 @@ QList<QAction*> RobotModule::toolBarActions()
 {
     QList<QAction*> actions;
 
-    QAction* connectAction = new QAction("连接", this);
+    QAction* connectAction = new QAction("Connect", this);
     connect(connectAction, &QAction::triggered, this, [this]() {
         if (m_bridge->isConnected()) {
             disconnectRos();
@@ -110,7 +110,7 @@ QList<QAction*> RobotModule::toolBarActions()
     });
     actions.append(connectAction);
 
-    QAction* eStopAction = new QAction("急停", this);
+    QAction* eStopAction = new QAction("Emergency Stop", this);
     connect(eStopAction, &QAction::triggered, this, &RobotModule::emergencyStop);
     actions.append(eStopAction);
 
@@ -121,7 +121,7 @@ QList<QAction*> RobotModule::menuActions()
 {
     QList<QAction*> actions;
 
-    QAction* simAction = new QAction("启动模拟模式", this);
+    QAction* simAction = new QAction("Start Simulation Mode", this);
     connect(simAction, &QAction::triggered, this, &RobotModule::startSimulation);
     actions.append(simAction);
 
@@ -146,7 +146,7 @@ void RobotModule::emergencyStop()
 
     EventBus::instance()->publish("log.message", {
         {"level", "WARN"},
-        {"message", "紧急停止已触发！所有运动已停止。"}
+        {"message", "Emergency stop triggered! All motion halted."}
     });
 }
 
@@ -156,13 +156,13 @@ void RobotModule::startSimulation()
 
     RobotState state;
     state.connected = true;
-    state.statusText = "模拟模式";
+    state.statusText = "Simulation Mode";
     DataModel::instance()->updateRobotState(state);
 
     m_simTimer->start(50);  // 20Hz
 
     EventBus::instance()->publish("log.message", {
         {"level", "INFO"},
-        {"message", "机器人模拟模式已启动 (20Hz)"}
+        {"message", "Robot simulation mode started (20Hz)"}
     });
 }

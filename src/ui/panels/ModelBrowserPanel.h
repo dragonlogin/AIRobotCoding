@@ -7,12 +7,12 @@
 #include <QLabel>
 
 /**
- * @brief 模型浏览器面板 - 左侧停靠
+ * @brief Model Browser panel - left dock
  *
- * 包含三个折叠区域：
- * 1. 工件树 - 显示 STEP 模型的拓扑结构（实体/面/边）
- * 2. 打磨任务列表
- * 3. 坐标系管理
+ * Contains three collapsible sections:
+ * 1. Workpiece tree - shows STEP model topology (solid / face / edge)
+ * 2. Grinding task list
+ * 3. Coordinate frame management
  */
 class ModelBrowserPanel : public QWidget
 {
@@ -28,12 +28,12 @@ private:
     void setupCoordinateSection();
     void connectSignals();
 
-    // 工件模型树
+    // Workpiece model tree
     QTreeWidget* m_modelTree = nullptr;
 
-    // 打磨任务列表
+    // Grinding task list
     QTreeWidget* m_taskTree = nullptr;
 
-    // 坐标系树
+    // Coordinate frame tree
     QTreeWidget* m_coordTree = nullptr;
 };

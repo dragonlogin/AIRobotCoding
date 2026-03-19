@@ -10,12 +10,12 @@
 #include <osg/MatrixTransform>
 
 /**
- * @brief OSG 3D 视图 Widget - 嵌入 Qt 的 OpenSceneGraph 渲染器
+ * @brief OSG 3D Viewer Widget - OpenSceneGraph renderer embedded in Qt
  *
- * 职责：
- * - 3D 场景渲染（工件模型、机器人、路径、坐标轴）
- * - 交互操作（旋转、平移、缩放、拾取）
- * - 提供场景节点管理接口供各模块使用
+ * Responsibilities:
+ * - 3D scene rendering (workpiece model, robot, path, coordinate axes)
+ * - Interactive operations (rotate, pan, zoom, pick)
+ * - Scene node management interface for use by other modules
  */
 class OsgViewerWidget : public QOpenGLWidget
 {
@@ -25,14 +25,14 @@ public:
     explicit OsgViewerWidget(QWidget* parent = nullptr);
     ~OsgViewerWidget();
 
-    /// 获取场景根节点（各模块向此节点添加内容）
+    /// Returns the scene root node (modules attach content to this node)
     osg::Group* sceneRoot() const { return m_sceneRoot.get(); }
 
-    /// 添加/移除场景节点
+    /// Add/remove a named scene node
     void addSceneNode(osg::Node* node, const QString& name);
     void removeSceneNode(const QString& name);
 
-    /// 视图控制
+    /// View controls
     void setViewFront();
     void setViewBack();
     void setViewLeft();
@@ -66,13 +66,13 @@ private:
     osg::ref_ptr<osgViewer::Viewer> m_viewer;
     osg::ref_ptr<osgViewer::GraphicsWindowEmbedded> m_graphicsWindow;
     osg::ref_ptr<osg::Group> m_sceneRoot;
-    osg::ref_ptr<osg::Group> m_modelGroup;       // 工件模型
-    osg::ref_ptr<osg::Group> m_robotGroup;        // 机器人模型
-    osg::ref_ptr<osg::Group> m_pathGroup;         // 打磨路径
-    osg::ref_ptr<osg::Group> m_helperGroup;       // 辅助元素（网格、坐标轴）
+    osg::ref_ptr<osg::Group> m_modelGroup;       // workpiece model
+    osg::ref_ptr<osg::Group> m_robotGroup;        // robot model
+    osg::ref_ptr<osg::Group> m_pathGroup;         // grinding path
+    osg::ref_ptr<osg::Group> m_helperGroup;       // helper elements (grid, coordinate axes)
 
     QTimer* m_updateTimer = nullptr;
 
-    // 命名节点映射
+    // Named node map
     QMap<QString, osg::ref_ptr<osg::Node>> m_namedNodes;
 };

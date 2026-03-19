@@ -9,33 +9,33 @@
 #endif
 
 /**
- * @brief 机器人 DH 参数配置
+ * @brief Robot DH parameter configuration
  *
- * 使用标准 DH 参数描述六轴机器人运动学链
- * 参数约定：a(mm), d(mm), alpha(rad), theta_offset(rad)
+ * Describes the kinematic chain of a six-axis robot using standard DH parameters.
+ * Convention: a (mm), d (mm), alpha (rad), theta_offset (rad)
  */
 struct RobotDHConfig
 {
     QString name;
 
-    // 每个关节的 DH 参数
-    std::array<double, 6> a;            // 连杆长度 mm
-    std::array<double, 6> d;            // 连杆偏距 mm
-    std::array<double, 6> alpha;        // 连杆扭角 rad
-    std::array<double, 6> thetaOffset;  // 关节零位偏移 rad
+    // DH parameters per joint
+    std::array<double, 6> a;            // Link length mm
+    std::array<double, 6> d;            // Link offset mm
+    std::array<double, 6> alpha;        // Link twist rad
+    std::array<double, 6> thetaOffset;  // Joint zero-position offset rad
 
-    // 关节限位 rad
+    // Joint limits rad
     std::array<double, 6> jointMin;
     std::array<double, 6> jointMax;
 };
 
 /**
- * @brief 内置机器人配置库
+ * @brief Built-in robot configuration library
  */
 class RobotConfigLibrary
 {
 public:
-    /// 获取指定型号的 DH 参数（返回 false 表示不支持）
+    /// Get DH parameters for the specified robot model (returns false if unsupported)
     static bool get(const QString& robotType, RobotDHConfig& config)
     {
         if (robotType == "ur5") {
@@ -54,7 +54,7 @@ public:
     }
 
 private:
-    /// UR5 标准 DH 参数 (单位 mm / rad)
+    /// UR5 standard DH parameters (units: mm / rad)
     static RobotDHConfig ur5()
     {
         RobotDHConfig c;

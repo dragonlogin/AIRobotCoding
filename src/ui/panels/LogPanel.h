@@ -5,7 +5,7 @@
 #include <QPushButton>
 
 /**
- * @brief 日志面板 - 底部标签页
+ * @brief Log panel - bottom tab
  */
 class LogPanel : public QWidget
 {

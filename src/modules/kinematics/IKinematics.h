@@ -5,27 +5,27 @@
 #include <QMatrix4x4>
 #include <array>
 
-/// 关节空间路径点
+/// Joint-space waypoint
 struct JointWaypoint
 {
     std::array<double, 6> joints = {0, 0, 0, 0, 0, 0};
-    double timeFromStart = 0.0;  // 秒
+    double timeFromStart = 0.0;  // seconds
 };
 
-/// 笛卡尔空间位姿（位置 + 旋转矩阵）
+/// Cartesian-space pose (position + rotation matrix)
 struct CartesianPose
 {
     QVector3D position;
-    QMatrix4x4 rotation;  // 3x3 旋转，存在 4x4 矩阵左上角
+    QMatrix4x4 rotation;  // 3x3 rotation stored in the upper-left of a 4x4 matrix
 };
 
 /**
- * @brief 运动学抽象接口
+ * @brief Abstract kinematics interface
  *
- * macOS/无ROS 环境：KdlKinematics 实现
- * Ubuntu/ROS 环境：MoveItKinematics 实现（未来扩展）
+ * macOS / no-ROS environment: implemented by KdlKinematics
+ * Ubuntu / ROS environment: implemented by MoveItKinematics (future extension)
  *
- * 用法：
+ * Usage:
  *   auto kin = KinematicsFactory::create();
  *   kin->setRobotConfig("ur5");
  *   JointWaypoint wp = kin->inverseKinematics(pose, seedJoints);
@@ -35,26 +35,27 @@ class IKinematics
 public:
     virtual ~IKinematics() = default;
 
-    /// 加载机器人配置（"ur5", "ur10", "custom" 等）
+    /// Load robot configuration ("ur5", "ur10", "custom", etc.)
     virtual bool setRobotConfig(const QString& robotType) = 0;
 
-    /// 正运动学：关节角 → 末端位姿
+    /// Forward kinematics: joint angles → end-effector pose
     virtual CartesianPose forwardKinematics(const std::array<double, 6>& joints) = 0;
 
-    /// 逆运动学：末端位姿 → 关节角（seedJoints 作为初始猜测，提高收敛速度和解的连续性）
+    /// Inverse kinematics: end-effector pose → joint angles
+    /// (seedJoints is the initial guess to improve convergence and solution continuity)
     virtual bool inverseKinematics(const CartesianPose& pose,
                                    const std::array<double, 6>& seedJoints,
                                    std::array<double, 6>& resultJoints) = 0;
 
-    /// 批量逆解：为整条路径生成关节轨迹（保证解的连续性）
+    /// Batch IK: compute a joint trajectory for an entire path (ensuring solution continuity)
     virtual QVector<JointWaypoint> computeTrajectory(
         const QVector<CartesianPose>& poses,
         const std::array<double, 6>& startJoints,
         double feedRate) = 0;
 
-    /// 检查关节角是否在限位内
+    /// Check whether joint angles are within their limits
     virtual bool checkJointLimits(const std::array<double, 6>& joints) const = 0;
 
-    /// 获取机器人名称
+    /// Get the robot name
     virtual QString robotName() const = 0;
 };

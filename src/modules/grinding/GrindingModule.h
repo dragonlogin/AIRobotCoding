@@ -4,12 +4,12 @@
 #include <QObject>
 
 /**
- * @brief 打磨执行模块 - 实际打磨任务管理
+ * @brief Grinding execution module - manages actual grinding tasks
  *
- * 职责：
- * - 打磨任务执行流程控制
- * - 实时力控反馈
- * - 打磨质量监控
+ * Responsibilities:
+ * - Grinding task execution flow control
+ * - Real-time force feedback
+ * - Grinding quality monitoring
  */
 class GrindingModule : public QObject, public IModule
 {
@@ -20,7 +20,7 @@ public:
     explicit GrindingModule(QObject* parent = nullptr);
 
     QString moduleId() const override { return "grinding"; }
-    QString moduleName() const override { return "打磨执行"; }
+    QString moduleName() const override { return "Grinding Execution"; }
     bool initialize() override;
     void shutdown() override;
 

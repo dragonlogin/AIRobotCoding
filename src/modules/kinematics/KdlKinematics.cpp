@@ -4,7 +4,7 @@
 #include <cmath>
 
 // ============================================================================
-// 公共工具：从位置 + 法向 构建打磨姿态
+// Utility: build grinding pose from position + surface normal
 // ============================================================================
 CartesianPose KdlKinematics::poseFromNormal(const QVector3D& position,
                                              const QVector3D& normal,
@@ -13,13 +13,13 @@ CartesianPose KdlKinematics::poseFromNormal(const QVector3D& position,
     CartesianPose pose;
     pose.position = position;
 
-    // 工具 Z 轴：沿法向方向（工具垂直打磨面）
-    QVector3D z = -normal.normalized();  // 工具朝向曲面
+    // Tool Z-axis: along the surface normal (tool perpendicular to grinding surface)
+    QVector3D z = -normal.normalized();  // Tool points toward the surface
 
-    // 工具 X 轴：路径方向在曲面切平面上的投影
+    // Tool X-axis: projection of the path direction onto the surface tangent plane
     QVector3D x = pathDirection - QVector3D::dotProduct(pathDirection, z) * z;
     if (x.length() < 1e-6f) {
-        // 路径方向与法向平行时，取任意垂直方向
+        // If path direction is parallel to the normal, pick an arbitrary perpendicular direction
         x = QVector3D(1, 0, 0);
         if (std::abs(QVector3D::dotProduct(x, z)) > 0.9f)
             x = QVector3D(0, 1, 0);
@@ -27,10 +27,10 @@ CartesianPose KdlKinematics::poseFromNormal(const QVector3D& position,
     }
     x.normalize();
 
-    // 工具 Y 轴：右手坐标系
+    // Tool Y-axis: right-hand coordinate system
     QVector3D y = QVector3D::crossProduct(z, x).normalized();
 
-    // 存入旋转矩阵（列向量为 x, y, z 轴方向）
+    // Store in rotation matrix (column vectors are the x, y, z axes)
     pose.rotation.setToIdentity();
     pose.rotation(0, 0) = x.x(); pose.rotation(0, 1) = y.x(); pose.rotation(0, 2) = z.x();
     pose.rotation(1, 0) = x.y(); pose.rotation(1, 1) = y.y(); pose.rotation(1, 2) = z.y();
@@ -45,7 +45,7 @@ CartesianPose KdlKinematics::poseFromNormal(const QVector3D& position,
 bool KdlKinematics::setRobotConfig(const QString& robotType)
 {
     if (!RobotConfigLibrary::get(robotType, m_config)) {
-        qWarning() << "KdlKinematics: 不支持的机器人型号:" << robotType;
+        qWarning() << "KdlKinematics: unsupported robot model:" << robotType;
         return false;
     }
 
@@ -54,12 +54,12 @@ bool KdlKinematics::setRobotConfig(const QString& robotType)
 #endif
 
     m_initialized = true;
-    qDebug() << "KdlKinematics: 已加载机器人配置:" << m_config.name;
+    qDebug() << "KdlKinematics: robot configuration loaded:" << m_config.name;
     return true;
 }
 
 // ============================================================================
-// 正运动学
+// Forward kinematics
 // ============================================================================
 CartesianPose KdlKinematics::forwardKinematics(const std::array<double, 6>& joints)
 {
@@ -74,7 +74,7 @@ CartesianPose KdlKinematics::forwardKinematics(const std::array<double, 6>& join
         result = fromKdlFrame(frame);
     }
 #else
-    // 无 KDL 时：手动计算 DH 正运动学
+    // Without KDL: manually compute DH forward kinematics
     QMatrix4x4 T;
     T.setToIdentity();
     for (int i = 0; i < 6; ++i) {
@@ -91,7 +91,7 @@ CartesianPose KdlKinematics::forwardKinematics(const std::array<double, 6>& join
 }
 
 // ============================================================================
-// 逆运动学
+// Inverse kinematics
 // ============================================================================
 bool KdlKinematics::inverseKinematics(const CartesianPose& pose,
                                        const std::array<double, 6>& seedJoints,
@@ -114,11 +114,11 @@ bool KdlKinematics::inverseKinematics(const CartesianPose& pose,
 
     return checkJointLimits(resultJoints);
 #else
-    // 无 KDL 时：数值迭代 IK（Jacobian 伪逆）
-    // 仅用于开发调试，精度有限
+    // Without KDL: numerical iterative IK (Jacobian pseudo-inverse)
+    // For development/debugging only; limited accuracy
     std::array<double, 6> q = seedJoints;
     const int maxIter = 200;
-    const double eps = 0.01;  // 1mm 位置精度
+    const double eps = 0.01;  // 1 mm position accuracy
 
     for (int iter = 0; iter < maxIter; ++iter) {
         CartesianPose current = forwardKinematics(q);
@@ -129,26 +129,26 @@ bool KdlKinematics::inverseKinematics(const CartesianPose& pose,
             return checkJointLimits(resultJoints);
         }
 
-        // 数值 Jacobian（仅位置分量，姿态暂不处理）
+        // Numerical Jacobian (position component only; orientation not handled here)
         const double dq = 1e-5;
         for (int j = 0; j < 6; ++j) {
             std::array<double, 6> qp = q;
             qp[j] += dq;
             CartesianPose cp = forwardKinematics(qp);
             QVector3D col = (cp.position - current.position) / dq;
-            // 简化：只修正位置
+            // Simplified: correct position only
             q[j] += 0.1 * QVector3D::dotProduct(col, posErr) / (col.lengthSquared() + 1e-6);
         }
     }
 
     resultJoints = q;
-    qWarning() << "KdlKinematics: IK 迭代未收敛（无 KDL 降级模式）";
+    qWarning() << "KdlKinematics: IK iteration did not converge (no-KDL fallback mode)";
     return false;
 #endif
 }
 
 // ============================================================================
-// 批量计算轨迹
+// Batch trajectory computation
 // ============================================================================
 QVector<JointWaypoint> KdlKinematics::computeTrajectory(
     const QVector<CartesianPose>& poses,
@@ -161,7 +161,7 @@ QVector<JointWaypoint> KdlKinematics::computeTrajectory(
     std::array<double, 6> prevJoints = startJoints;
     double t = 0.0;
 
-    // 起始点
+    // Starting waypoint
     JointWaypoint wp0;
     wp0.joints = startJoints;
     wp0.timeFromStart = 0.0;
@@ -175,11 +175,11 @@ QVector<JointWaypoint> KdlKinematics::computeTrajectory(
 
         if (!ok) {
             ++failCount;
-            // IK 失败时沿用上一个解，避免轨迹断裂
+            // On IK failure, reuse the previous solution to avoid trajectory discontinuity
             q = prevJoints;
         }
 
-        // 根据两点间距离估算时间
+        // Estimate time from distance between points
         CartesianPose prevPose = forwardKinematics(prevJoints);
         double dist = (poses[i].position - prevPose.position).length();
         double dt = (feedRate > 0) ? (dist / feedRate * 60.0) : 0.1;
@@ -194,14 +194,14 @@ QVector<JointWaypoint> KdlKinematics::computeTrajectory(
     }
 
     if (failCount > 0) {
-        qWarning() << "KdlKinematics: 轨迹中有" << failCount << "个点 IK 求解失败";
+        qWarning() << "KdlKinematics: IK solve failed for" << failCount << "points in trajectory";
     }
 
     return trajectory;
 }
 
 // ============================================================================
-// 关节限位检查
+// Joint limit check
 // ============================================================================
 bool KdlKinematics::checkJointLimits(const std::array<double, 6>& joints) const
 {
@@ -213,7 +213,7 @@ bool KdlKinematics::checkJointLimits(const std::array<double, 6>& joints) const
 }
 
 // ============================================================================
-// KDL 专属实现
+// KDL-specific implementation
 // ============================================================================
 #ifdef HAS_KDL
 
@@ -222,7 +222,7 @@ void KdlKinematics::buildKdlChain()
     m_chain = KDL::Chain();
 
     for (int i = 0; i < 6; ++i) {
-        double a     = m_config.a[i] * 1e-3;  // mm → m
+        double a     = m_config.a[i] * 1e-3;  // mm -> m
         double d     = m_config.d[i] * 1e-3;
         double alpha = m_config.alpha[i];
         double offset = m_config.thetaOffset[i];
@@ -239,12 +239,12 @@ void KdlKinematics::buildKdlChain()
 
 KDL::Frame KdlKinematics::toKdlFrame(const CartesianPose& pose) const
 {
-    // 位置 mm → m
+    // Position mm -> m
     KDL::Vector pos(pose.position.x() * 1e-3,
                     pose.position.y() * 1e-3,
                     pose.position.z() * 1e-3);
 
-    // 旋转矩阵
+    // Rotation matrix
     KDL::Rotation rot(
         pose.rotation(0,0), pose.rotation(0,1), pose.rotation(0,2),
         pose.rotation(1,0), pose.rotation(1,1), pose.rotation(1,2),
@@ -256,13 +256,13 @@ KDL::Frame KdlKinematics::toKdlFrame(const CartesianPose& pose) const
 CartesianPose KdlKinematics::fromKdlFrame(const KDL::Frame& frame) const
 {
     CartesianPose pose;
-    // 位置 m → mm
+    // Position m -> mm
     pose.position = QVector3D(
         frame.p.x() * 1e3,
         frame.p.y() * 1e3,
         frame.p.z() * 1e3);
 
-    // 旋转矩阵
+    // Rotation matrix
     pose.rotation.setToIdentity();
     for (int r = 0; r < 3; ++r)
         for (int c = 0; c < 3; ++c)
@@ -279,13 +279,13 @@ KDL::JntArray KdlKinematics::toKdlJoints(const std::array<double, 6>& joints) co
     return q;
 }
 
-#else  // 无 KDL 时的 DH 矩阵
+#else  // DH matrix fallback when KDL is not available
 
 QMatrix4x4 KdlKinematics::dhTransform(double a, double d, double alpha, double theta) const
 {
     float ca = std::cos(alpha), sa = std::sin(alpha);
     float ct = std::cos(theta), st = std::sin(theta);
-    float af = a * 1e-3f;  // mm → m（仅用于仿真显示，实际单位保持 mm 亦可）
+    float af = a * 1e-3f;  // mm -> m (for simulation display; mm may also be kept as-is)
     float df = d * 1e-3f;
 
     QMatrix4x4 T(

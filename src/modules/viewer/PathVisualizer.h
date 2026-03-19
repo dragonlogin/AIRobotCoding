@@ -8,33 +8,33 @@
 #include "core/DataModel.h"
 
 /**
- * @brief 路径可视化器 - 将打磨路径渲染为3D线条和箭头
+ * @brief Path Visualizer - renders grinding paths as 3D lines and arrows
  *
- * 功能：
- * - 路径线条显示（彩色渐变表示进度）
- * - 法向箭头显示
- * - 当前执行点标记
- * - 路径点序号标注
+ * Features:
+ * - Path line display (color gradient indicating progress)
+ * - Normal arrow display
+ * - Current execution point marker
+ * - Waypoint index labels
  */
 class PathVisualizer
 {
 public:
     PathVisualizer() = default;
 
-    /// 从路径点列表生成 OSG 场景节点
+    /// Build an OSG scene node from a list of path points
     osg::ref_ptr<osg::Group> createPathNode(const QVector<PathPoint>& path);
 
-    /// 创建法向箭头显示
+    /// Create normal arrow display
     osg::ref_ptr<osg::Geode> createNormalArrows(
         const QVector<PathPoint>& path, float arrowLength = 5.0f);
 
-    /// 创建当前执行点标记
+    /// Create the current execution point marker
     osg::ref_ptr<osg::Geode> createCurrentPointMarker();
 
-    /// 更新当前执行点位置
+    /// Update the position of the current execution point marker
     void updateCurrentPoint(osg::Geode* marker, const PathPoint& point);
 
-    /// 设置路径线宽
+    /// Set path line width
     void setLineWidth(float width) { m_lineWidth = width; }
 
 private:
